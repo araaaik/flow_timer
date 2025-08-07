@@ -52,32 +52,27 @@ function Timer({
   return (
     <div className="text-center">
       {/* Status */}
-      <div className={`${
-        // Larger when showing task name
-        (!isBreak && activeTask) ? 'text-base md:text-lg' : 'text-sm'
-      } font-medium mb-2 ${
-        // Status label colorization:
-        // - During break: always green (semantic)
-        // - During work: do NOT color project name with accent (keep neutral text for consistency)
-        isBreak
-          ? 'text-green-600'
-          : (theme === 'dark' ? 'text-gray-200' : 'text-gray-800')
-      }`}>
+      {/* Status: break = green, work = neutral; ensure no accent class leaks here */}
+      <div
+        className={[
+          (!isBreak && activeTask) ? 'text-base md:text-lg' : 'text-sm',
+          'font-medium mb-2',
+          isBreak ? 'text-green-600' : (theme === 'dark' ? 'text-gray-200' : 'text-gray-800')
+        ].join(' ')}
+      >
         {isBreak ? 'BREAK' : (activeTask ? activeTask.name : 'READY')}
       </div>
 
       {/* Active Task - removed per request: we now show the project name in the status line */}
 
       {/* Timer Display */}
-      <div className={`${
-        // Make digits larger
-        isCompact ? 'text-5xl' : 'text-7xl'
-      } font-sans font-bold tracking-tight mb-6 ${
-        // Keep digits neutral in break; optionally accent when running
-        isRunning && !isBreak
-          ? `text-${accentColor}-600`
-          : (theme === 'dark' ? 'text-white' : 'text-gray-900')
-      }`}>
+      <div
+        className={[
+          isCompact ? 'text-5xl' : 'text-7xl',
+          'font-sans font-bold tracking-tight mb-6',
+          (isRunning && !isBreak) ? `text-${accentColor}-600` : (theme === 'dark' ? 'text-white' : 'text-gray-900')
+        ].join(' ')}
+      >
         {formatTime(time)}
       </div>
 
@@ -116,11 +111,13 @@ function Timer({
         )}
       </div>
 
-      {/* Estimated Break Time (moved below controls) */}
-      {isRunning && !isBreak && estimatedBreakTime > 0 && !isCompact && (
-        <div className={`text-sm mt-4 ${
+      {/* Estimated Break Time (show even in compact mode, smaller text) */}
+      {isRunning && !isBreak && estimatedBreakTime > 0 && (
+        <div className={[
+          'mt-4',
+          isCompact ? 'text-xs' : 'text-sm',
           theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-        }`}>
+        ].join(' ')}>
           Estimated break: {Math.ceil(estimatedBreakTime / 60)} min
         </div>
       )}
