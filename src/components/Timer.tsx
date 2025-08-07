@@ -115,10 +115,17 @@ function Timer({
       {isRunning && !isBreak && estimatedBreakTime > 0 && (
         <div className={[
           'mt-4',
+          'flex items-center justify-center gap-2',
           isCompact ? 'text-xs' : 'text-sm',
           theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
         ].join(' ')}>
-          Estimated break: {Math.ceil(estimatedBreakTime / 60)} min
+          <span>Estimated break:</span>
+          <div className="inline-flex items-center rounded-full px-2 py-0.5 border border-transparent"
+               style={{ backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}>
+            <span className="tabular-nums">
+              {Math.ceil(estimatedBreakTime / 60)} min
+            </span>
+          </div>
         </div>
       )}
 
