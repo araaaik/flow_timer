@@ -1,13 +1,40 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Task, Session, Settings } from '../App';
 
+/**
+ * useTimer()
+ * A drift-free work/break timer hook that:
+ * - Tracks work elapsed time using wall-clock (Date.now) to avoid setInterval drift
+ * - Persists state to localStorage to survive reloads and resumes correctly
+ * - Starts a proportional break on stop (break = floor(workedSeconds / 5))
+ * - Emits audio and optional visual notifications at break end
+ *
+ * Inputs:
+ * - activeTask: current selected task or null (cannot start without)
+ * - tasks: current task list (used to update timeSpent on stop)
+ * - sessions: historical sessions (not mutated here directly, only appended)
+ * - setSessions: setter to append newly finished work sessions
+ * - settings: user preferences (audio/visual notifications)
+ *
+ * Returns:
+ * - time: number
+ * - isRunning: boolean
+ * - isBreak: boolean
+ * - startTimer(): void
+ * - stopTimer(): void
+ * - resetTimer(): void
+ * - estimatedBreakTime: number (seconds, computed live while working)
+ */
 interface TimerState {
-  time: number;          // seconds for display (work elapsed or break remaining)
+  /** seconds for display (work elapsed or break remaining) */
+  time: number;
   isRunning: boolean;
   isBreak: boolean;
-  startTime: number;     // ms reference for drift-free ticking
+  /** ms reference for drift-free ticking */
+  startTime: number;
   sessionId: string;
-  targetTime?: number;   // ms timestamp when break should end
+  /** ms timestamp when break should end */
+  targetTime?: number;
 }
 
 export function useTimer(
@@ -20,11 +47,16 @@ export function useTimer(
   const [timerState, setTimerState] = useState<TimerState>(() => {
     const saved = localStorage.getItem('flow-timer-state');
     if (saved) {
-      const parsed = JSON.parse(saved);
+      const parsed = JSON.parse(saved) as Partial<TimerState>;
+      // Normalize saved state to ensure required fields exist
       return {
-        ...parsed,
-        isRunning: false, // Always start paused when reloading
-      } as TimerState;
+        time: typeof parsed.time === 'number' ? parsed.time : 0,
+        isRunning: !!parsed.isRunning,
+        isBreak: !!parsed.isBreak,
+        startTime: typeof parsed.startTime === 'number' ? parsed.startTime : 0,
+        sessionId: typeof parsed.sessionId === 'string' ? parsed.sessionId : '',
+        targetTime: typeof parsed.targetTime === 'number' ? parsed.targetTime : undefined,
+      };
     }
     return {
       time: 0,
@@ -43,6 +75,67 @@ export function useTimer(
   useEffect(() => {
     localStorage.setItem('flow-timer-state', JSON.stringify(timerState));
   }, [timerState]);
+
+  // On mount, reconcile saved state with wall clock so timers continue across reloads
+  useEffect(() => {
+    const saved = localStorage.getItem('flow-timer-state');
+    if (!saved) return;
+
+    const parsed = JSON.parse(saved) as TimerState;
+    const now = Date.now();
+
+    if (parsed.isRunning) {
+      if (!parsed.isBreak) {
+        // Resume work: recompute elapsed since startTime
+        const elapsedSec = Math.max(0, Math.floor((now - parsed.startTime) / 1000));
+        setTimerState(prev => ({
+          ...prev,
+          isRunning: true,
+          isBreak: false,
+          startTime: parsed.startTime,
+          sessionId: parsed.sessionId,
+          time: elapsedSec,
+          targetTime: undefined,
+        }));
+      } else {
+        // Resume break: compute remaining from targetTime
+        const remainingSec = parsed.targetTime ? Math.ceil((parsed.targetTime - now) / 1000) : 0;
+        if (remainingSec > 0) {
+          setTimerState(prev => ({
+            ...prev,
+            isRunning: true,
+            isBreak: true,
+            startTime: now,
+            sessionId: parsed.sessionId,
+            time: remainingSec,
+            targetTime: parsed.targetTime,
+          }));
+        } else {
+          // Break already finished while closed
+          setTimerState(prev => ({
+            ...prev,
+            isRunning: false,
+            isBreak: false,
+            time: 0,
+            targetTime: undefined,
+          }));
+          // Fire notifications consistent with in-app finish behavior
+          playNotification();
+          if (settings.visualNotifications) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('Break time is over!', {
+                body: 'Ready to get back to work?',
+                icon: '/favicon.ico',
+              });
+            }
+          }
+        }
+      }
+    }
+    // If not running, we leave it paused as saved.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   // Drift-free ticker using requestAnimationFrame + wall clock
   useEffect(() => {
