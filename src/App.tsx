@@ -152,7 +152,7 @@ function App() {
             <div className="flex items-baseline gap-3">
               <h1 className={`text-2xl font-bold ${isCompact ? 'hidden' : ''}`} style={{ lineHeight: '1.1' }}>Flow</h1>
               {todaysTime > 0 && (
-                <div className="text-base text-gray-500" style={{ paddingTop: '2px', lineHeight: '1.1' }}>
+                <div className="text-lg text-gray-500" style={{ paddingTop: '2px', lineHeight: '1.1' }}>
                   {Math.floor(todaysTime / 3600)}h {Math.floor((todaysTime % 3600) / 60)}m today
                 </div>
               )}
