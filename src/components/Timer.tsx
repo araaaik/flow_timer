@@ -56,9 +56,12 @@ function Timer({
         // Larger when showing task name
         (!isBreak && activeTask) ? 'text-base md:text-lg' : 'text-sm'
       } font-medium mb-2 ${
+        // Status label colorization:
+        // - During break: always green (semantic)
+        // - During work: do NOT color project name with accent (keep neutral text for consistency)
         isBreak
           ? 'text-green-600'
-          : `text-${accentColor}-600`
+          : (theme === 'dark' ? 'text-gray-200' : 'text-gray-800')
       }`}>
         {isBreak ? 'BREAK' : (activeTask ? activeTask.name : 'READY')}
       </div>
@@ -70,12 +73,10 @@ function Timer({
         // Make digits larger
         isCompact ? 'text-5xl' : 'text-7xl'
       } font-sans font-bold tracking-tight mb-6 ${
-        // Digits should NOT change color during break; only status label above is colored
-        isRunning
+        // Keep digits neutral in break; optionally accent when running
+        isRunning && !isBreak
           ? `text-${accentColor}-600`
-          : theme === 'dark'
-            ? 'text-white'
-            : 'text-gray-900'
+          : (theme === 'dark' ? 'text-white' : 'text-gray-900')
       }`}>
         {formatTime(time)}
       </div>
