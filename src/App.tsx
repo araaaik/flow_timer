@@ -137,7 +137,8 @@ function App() {
       <div className={`mx-auto ${isCompact ? 'max-w-md p-4' : 'max-w-2xl p-6'}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
+          {/* Left: status dot + title + today's time aligned on the same baseline */}
+          <div className="flex items-center gap-3">
             <div
               className={`w-3 h-3 rounded-full ${
                 isRunning
@@ -146,15 +147,17 @@ function App() {
                     : 'bg-blue-500 animate-pulse'   // work -> blue
                   : 'bg-gray-300'
               }`}
-            ></div>
-            <h1 className={`text-2xl font-bold ${isCompact ? 'hidden' : ''}`}>Flow</h1>
-            {todaysTime > 0 && (
-              <div className="text-sm text-gray-500">
-                {Math.floor(todaysTime / 3600)}h {Math.floor((todaysTime % 3600) / 60)}m today
-              </div>
-            )}
+            />
+            <div className="flex items-baseline gap-3">
+              <h1 className={`text-2xl font-bold leading-none ${isCompact ? 'hidden' : ''}`}>Flow</h1>
+              {todaysTime > 0 && (
+                <div className="text-sm leading-none text-gray-500">
+                  {Math.floor(todaysTime / 3600)}h {Math.floor((todaysTime % 3600) / 60)}m today
+                </div>
+              )}
+            </div>
           </div>
-          
+
           <div className="flex items-center space-x-2 transition-colors duration-240 ease-out-smooth">
             <button
               onClick={() => setIsCompact(!isCompact)}
