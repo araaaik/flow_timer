@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Smooth theme transitions */
+@layer base {
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: no-preference) {
+    /* Unified timing across the app */
+    :root, html, body, #root,
+    /* Common containers and surfaces */
+    .bg-white, .bg-gray-50, .bg-gray-100, .bg-gray-800, .bg-gray-900,
+    /* Text utilities */
+    .text-white, .text-gray-900, .text-gray-800, .text-gray-700, .text-gray-600, .text-gray-500, .text-gray-400,
+    /* Borders and rings */
+    .border, .border-gray-200, .border-gray-600, .ring, .ring-1,
+    /* Any element opting into Tailwind color transitions */
+    .transition-colors {
+      transition-property: background-color, color, border-color, outline-color, fill, stroke, box-shadow;
+      transition-duration: 240ms;
+      transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1); /* easeOutQuart-like for cohesive feel */
+    }
+
+    /* Form controls and buttons share the same timing to avoid phase differences */
+    button, input, select, textarea, [role="button"] {
+      transition-property: background-color, color, border-color, outline-color, box-shadow, fill, stroke;
+      transition-duration: 240ms;
+      transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+  }
+}
