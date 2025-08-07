@@ -150,7 +150,7 @@ function App() {
             />
             {/* Center-align title and today's counter vertically with each other */}
             <div className="flex items-center gap-3">
-              <h1 className={`text-2xl font-bold ${isCompact ? 'hidden' : ''}`}>Flow</h1>
+              <h1 className={`text-2xl font-bold ${isCompact ? 'hidden' : ''}`}>FLOW</h1>
               {todaysTime > 0 && (
                 <div className="text-lg text-gray-500">
                   {Math.floor(todaysTime / 3600)}h {Math.floor((todaysTime % 3600) / 60)}m today
