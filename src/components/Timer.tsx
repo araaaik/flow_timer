@@ -70,8 +70,11 @@ function Timer({
         className={[
           isCompact ? 'text-5xl' : 'text-7xl',
           'font-sans font-bold tracking-tight mb-6',
+          // force stable color classes so Tailwind never injects dynamic accent classes
           theme === 'dark' ? 'text-white' : 'text-gray-900'
         ].join(' ')}
+        // Extra insurance: inline style overrides accidental inherited color from parent
+        style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}
       >
         {formatTime(time)}
       </div>
