@@ -137,7 +137,7 @@ function App() {
       <div className={`mx-auto ${isCompact ? 'max-w-md p-4' : 'max-w-2xl p-6'}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          {/* Left: status dot + title + today's time aligned on the same baseline */}
+          {/* Left: status dot + title + today's time perfectly baseline-aligned */}
           <div className="flex items-center gap-3">
             <div
               className={`w-3 h-3 rounded-full ${
@@ -148,10 +148,11 @@ function App() {
                   : 'bg-gray-300'
               }`}
             />
+            {/* Use tiny vertical nudge so text baselines visually match regardless of font metrics */}
             <div className="flex items-baseline gap-3">
-              <h1 className={`text-2xl font-bold leading-none ${isCompact ? 'hidden' : ''}`}>Flow</h1>
+              <h1 className={`text-2xl font-bold ${isCompact ? 'hidden' : ''}`} style={{ lineHeight: '1.1' }}>Flow</h1>
               {todaysTime > 0 && (
-                <div className="text-sm leading-none text-gray-500">
+                <div className="text-sm text-gray-500" style={{ paddingTop: '2px', lineHeight: '1.1' }}>
                   {Math.floor(todaysTime / 3600)}h {Math.floor((todaysTime % 3600) / 60)}m today
                 </div>
               )}
