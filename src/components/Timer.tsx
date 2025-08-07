@@ -65,12 +65,12 @@ function Timer({
 
       {/* Active Task - removed per request: we now show the project name in the status line */}
 
-      {/* Timer Display */}
+      {/* Timer Display: never use accent color for digits per requirement */}
       <div
         className={[
           isCompact ? 'text-5xl' : 'text-7xl',
           'font-sans font-bold tracking-tight mb-6',
-          (isRunning && !isBreak) ? `text-${accentColor}-600` : (theme === 'dark' ? 'text-white' : 'text-gray-900')
+          theme === 'dark' ? 'text-white' : 'text-gray-900'
         ].join(' ')}
       >
         {formatTime(time)}
@@ -111,18 +111,24 @@ function Timer({
         )}
       </div>
 
-      {/* Estimated Break Time (show even in compact mode, smaller text) */}
+      {/* Estimated Break Time (show in both compact and regular modes) */}
       {isRunning && !isBreak && estimatedBreakTime > 0 && (
-        <div className={[
-          'mt-4',
-          'flex items-center justify-center gap-2',
-          isCompact ? 'text-xs' : 'text-sm',
-          theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-        ].join(' ')}>
-          <span>Estimated break:</span>
-          <div className="inline-flex items-center rounded-full px-2 py-0.5 border border-transparent"
-               style={{ backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}>
-            <span className="tabular-nums">
+        <div
+          className={[
+            'mt-4',
+            'flex items-center justify-center gap-2',
+            isCompact ? 'text-xs' : 'text-sm',
+            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+          ].join(' ')}
+        >
+          <span className="whitespace-nowrap">Estimated break:</span>
+          <div
+            className={[
+              'inline-flex items-center rounded-full px-2 py-0.5',
+              theme === 'dark' ? 'bg-white/10' : 'bg-black/5'
+            ].join(' ')}
+          >
+            <span className="tabular-nums whitespace-nowrap">
               {Math.ceil(estimatedBreakTime / 60)} min
             </span>
           </div>
