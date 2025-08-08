@@ -47,7 +47,7 @@ Declared centrally in [`src.App.tsx`](src/App.tsx).
 ## Storage Keys
 
 - flow-settings: Settings JSON
-- flow-layout: 'horizontal' | 'vertical'
+- flow-layout: 'compact' | 'full' (legacy values 'horizontal'/'vertical' are migrated at runtime)
 - flow-tasks: Task[] JSON
 - flow-active-task: Task | null
 - flow-sessions: Session[] JSON
@@ -123,7 +123,7 @@ Props:
 - estimatedBreakTime: number — seconds; only shown during work
 - theme: 'light' | 'dark'
 - accentColor: string
-- isCompact: boolean
+- isWidget: boolean
 
 Notes:
 - Reads settings.colorTimer via localStorage to adjust visuals without prop drilling.
@@ -185,7 +185,7 @@ Source: [`src.components.MusicPlayer.tsx`](src/components/MusicPlayer.tsx)
 
 Props:
 - theme: 'light' | 'dark'
-- layout?: 'horizontal' | 'vertical' (default 'vertical')
+- layout?: 'compact' | 'full' (default 'full')
 
 Notes:
 - UI for choosing a YouTube stream and pseudo volume; reads accentColor from flow-settings.
@@ -213,7 +213,7 @@ Source: [`src.App.tsx`](src/App.tsx)
 - useTimer for timing and break logic
 - useTheme for theme toggling and accent token
 - Renders:
-  - Timer with time/isRunning/isBreak/handlers/activeTask/estimatedBreakTime/theme/accentColor/isCompact
+  - Timer with time/isRunning/isBreak/handlers/activeTask/estimatedBreakTime/theme/accentColor/isWidget
   - TaskManager with tasks/activeTask/handlers/taskHistory/theme/accentColor/sessions
   - History modal with sessions/tasks/delete handlers/theme/accentColor
   - SettingsPanel with settings and updater
@@ -222,8 +222,8 @@ Source: [`src.App.tsx`](src/App.tsx)
 ## UI State Conventions
 
 - Layout:
-  - isCompact: single dense column when true
-  - layout: 'horizontal' places Timer and TaskManager side-by-side on >= sm
+  - isWidget: single dense column when true
+  - layout: 'compact' places Timer and TaskManager side-by-side on >= sm; 'full' stacks them
 - Card shadow policy:
   - settings.flatMode true => shadows disabled globally; components compute cardShadow accordingly
 - Accent:

@@ -40,7 +40,7 @@ These interfaces are declared in [`src.App.tsx`](src/App.tsx).
 ## Storage Keys
 
 - flow-settings: Settings (JSON)
-- flow-layout: 'horizontal' | 'vertical'
+- flow-layout: 'compact' | 'full' (legacy 'horizontal'/'vertical' accepted)
 - flow-tasks: Task[] (JSON)
 - flow-active-task: Task | null
 - flow-sessions: Session[] (JSON)
@@ -97,11 +97,11 @@ See [`src.hooks.useTheme.ts`](src/hooks/useTheme.ts) and class maps in [`src.App
 ## Layout
 
 - App manages:
-  - isCompact: toggles a single-column dense layout
-  - layout: 'horizontal' or 'vertical' grid controlled via flow-layout
+  - isWidget: toggles a single-column dense layout (Widget mode)
+  - layout: 'compact' or 'full' grid controlled via flow-layout
   - Conditional MusicPlayer placement:
-    - In horizontal layout: below Timer inside the left column card
-    - In vertical: own block or hidden in compact
+    - In compact layout: below Timer inside the left column card
+    - In full layout: own block; hidden in widget mode
 
 ## Notifications
 

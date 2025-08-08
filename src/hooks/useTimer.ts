@@ -240,7 +240,14 @@ export function useTimer(
   };
 
   const startTimer = () => {
-    if (!activeTask) return;
+    // Check if we can start based on settings
+    const showTasks = settings.showTasks ?? true;
+    const requireTaskSelection = settings.requireTaskSelection ?? true;
+    
+    // Only require activeTask if tasks are shown AND task selection is required
+    if (showTasks && requireTaskSelection && !activeTask) {
+      return;
+    }
 
     const sessionId = Date.now().toString();
     const now = Date.now();
@@ -257,17 +264,35 @@ export function useTimer(
   };
 
   const stopTimer = () => {
-    if (!activeTask || !timerState.isRunning || timerState.isBreak) return;
+    if (!timerState.isRunning || timerState.isBreak) return;
 
     // Compute actual worked seconds based on wall clock
     const workedSeconds = Math.max(0, Math.floor((Date.now() - timerState.startTime) / 1000));
     const breakSeconds = Math.floor(workedSeconds / 5);
 
+    // Generate Focus session name if no task selected
+    let sessionTaskId = '';
+    let sessionTaskName = '';
+    
+    if (activeTask) {
+      sessionTaskId = activeTask.id;
+      sessionTaskName = activeTask.name;
+    } else {
+      // Generate Focus #N for sessions without task
+      const today = new Date().toDateString();
+      const todayFocusSessions = sessions.filter(s => 
+        s.date === today && s.taskName.startsWith('Focus #')
+      );
+      const focusNumber = todayFocusSessions.length + 1;
+      sessionTaskId = `focus-${Date.now()}`;
+      sessionTaskName = `Focus #${focusNumber}`;
+    }
+
     // Save session
     const session: Session = {
       id: timerState.sessionId || Date.now().toString(),
-      taskId: activeTask.id,
-      taskName: activeTask.name,
+      taskId: sessionTaskId,
+      taskName: sessionTaskName,
       startTime: new Date(timerState.startTime).toISOString(),
       endTime: new Date().toISOString(),
       duration: workedSeconds,
@@ -276,13 +301,15 @@ export function useTimer(
 
     setSessions(prev => [...prev, session]);
 
-    // Update task time
-    const updatedTasks = tasks.map(task =>
-      task.id === activeTask.id
-        ? { ...task, timeSpent: task.timeSpent + workedSeconds }
-        : task
-    );
-    localStorage.setItem('flow-tasks', JSON.stringify(updatedTasks));
+    // Update task time only if there's an active task
+    if (activeTask) {
+      const updatedTasks = tasks.map(task =>
+        task.id === activeTask.id
+          ? { ...task, timeSpent: task.timeSpent + workedSeconds }
+          : task
+      );
+      localStorage.setItem('flow-tasks', JSON.stringify(updatedTasks));
+    }
 
     // Start break countdown drift-free
     const now = Date.now();

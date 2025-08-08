@@ -5,6 +5,7 @@ interface MusicState {
   currentStream: number;
   volume: number;
   isMuted: boolean;
+  hiddenStreams: number[]; // Array of hidden stream indices
 }
 
 const streams = [
@@ -22,7 +23,8 @@ class MusicPlayerManager {
     isPlaying: false,
     currentStream: 0,
     volume: 50,
-    isMuted: false
+    isMuted: false,
+    hiddenStreams: []
   };
   private listeners: Array<(state: MusicState) => void> = [];
   private iframeRef: HTMLIFrameElement | null = null;
@@ -61,7 +63,8 @@ class MusicPlayerManager {
   }
 
   private notifyListeners() {
-    this.listeners.forEach(listener => listener(this.state));
+    // Send a fresh copy to trigger React state updates reliably
+    this.listeners.forEach(listener => listener({ ...this.state }));
     this.saveState();
   }
 
@@ -119,19 +122,90 @@ class MusicPlayerManager {
     
     if (!videoId) return;
 
-    const autoplay = this.state.isPlaying && !this.state.isMuted ? 1 : 0;
-    const mute = this.state.isMuted || this.state.volume === 0 ? 1 : 0;
-    
-    const newSrc = `https://www.youtube.com/embed/${videoId}?autoplay=${autoplay}&mute=${mute}&controls=0&modestbranding=1&rel=0&loop=1`;
-    
-    // Only update src if it actually changed
+    const params = new URLSearchParams({
+      autoplay: (this.state.isPlaying && !this.state.isMuted) ? '1' : '0',
+      mute: (this.state.isMuted || this.state.volume === 0) ? '1' : '0',
+      controls: '0',
+      modestbranding: '1',
+      rel: '0',
+      loop: '1',
+      enablejsapi: '1',
+      origin: window.location.origin,
+    });
+
+    const base = `https://www.youtube.com/embed/${videoId}`;
+    const newSrc = `${base}?${params.toString()}`;
+
     if (this.iframeRef.src !== newSrc) {
       this.iframeRef.src = newSrc;
+    }
+
+    // Control via postMessage to avoid unnecessary src reloads
+    const playerCommand = (func: string, args: unknown[] = []) => {
+      if (!this.iframeRef) return;
+      this.iframeRef.contentWindow?.postMessage(
+        JSON.stringify({ event: 'command', func, args }),
+        '*'
+      );
+    };
+
+    if (this.state.isMuted || this.state.volume === 0) {
+      playerCommand('mute');
+    } else {
+      playerCommand('unMute');
+    }
+
+    // YouTube volume range is 0..100
+    playerCommand('setVolume', [this.state.volume]);
+
+    if (this.state.isPlaying && !this.state.isMuted) {
+      playerCommand('playVideo');
+    } else {
+      playerCommand('pauseVideo');
     }
   }
 
   public getStreams() {
     return streams;
+  }
+
+  public getVisibleStreams() {
+    return streams.filter((_, index) => !this.state.hiddenStreams.includes(index));
+  }
+
+  public toggleStreamVisibility(index: number) {
+    if (index < 0 || index >= streams.length) return;
+    
+    const hiddenStreams = [...this.state.hiddenStreams];
+    const hiddenIndex = hiddenStreams.indexOf(index);
+    
+    if (hiddenIndex > -1) {
+      // Show stream
+      hiddenStreams.splice(hiddenIndex, 1);
+    } else {
+      // Hide stream
+      hiddenStreams.push(index);
+    }
+    
+    this.state.hiddenStreams = hiddenStreams;
+    
+    // If current stream is being hidden, switch to first visible stream
+    if (hiddenStreams.includes(this.state.currentStream)) {
+      const visibleStreams = streams
+        .map((_, i) => i)
+        .filter(i => !hiddenStreams.includes(i));
+      
+      if (visibleStreams.length > 0) {
+        this.state.currentStream = visibleStreams[0];
+        this.updateIframe();
+      }
+    }
+    
+    this.notifyListeners();
+  }
+
+  public isStreamHidden(index: number): boolean {
+    return this.state.hiddenStreams.includes(index);
   }
 }
 
@@ -147,10 +221,13 @@ export function useMusicPlayer() {
   return {
     ...state,
     streams: managerRef.current.getStreams(),
+    visibleStreams: managerRef.current.getVisibleStreams(),
     setPlaying: managerRef.current.setPlaying.bind(managerRef.current),
     setCurrentStream: managerRef.current.setCurrentStream.bind(managerRef.current),
     setVolume: managerRef.current.setVolume.bind(managerRef.current),
     setMuted: managerRef.current.setMuted.bind(managerRef.current),
-    setIframeRef: managerRef.current.setIframeRef.bind(managerRef.current)
+    setIframeRef: managerRef.current.setIframeRef.bind(managerRef.current),
+    toggleStreamVisibility: managerRef.current.toggleStreamVisibility.bind(managerRef.current),
+    isStreamHidden: managerRef.current.isStreamHidden.bind(managerRef.current)
   };
 }

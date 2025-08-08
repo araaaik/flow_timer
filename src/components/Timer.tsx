@@ -1,11 +1,11 @@
 import React from 'react';
 import { Play, Pause, RotateCcw } from 'lucide-react';
-import type { Task } from '../App';
+import type { Task, Settings } from '../App';
 
 /**
  * Timer.tsx
  * Stateless presentational component that renders:
- * - Current status (READY / task name / BREAK)
+ * - Current status (FOCUS / task name / RELAX)
  * - A large time display (mm:ss or h:mm:ss)
  * - Start/Stop primary button and a conditional Reset button
  * - An "Estimated break" chip while working, based on useTimer.estimatedBreakTime
@@ -17,7 +17,7 @@ import type { Task } from '../App';
  * - onStart/onStop/onReset: control handlers from useTimer
  * - activeTask: selected task or null (controls readiness)
  * - estimatedBreakTime: seconds; only shown during active work
- * - theme, accentColor, isCompact: visual presentation
+ * - theme, accentColor, isWidget: visual presentation
  */
 interface TimerProps {
   /** Seconds to show in the clock (work elapsed or break remaining) */
@@ -32,7 +32,7 @@ interface TimerProps {
   onStop: () => void;
   /** Reset any session state (confirmation handled in component) */
   onReset: () => void;
-  /** The currently selected task (null means READY) */
+  /** The currently selected task (null means FOCUS) */
   activeTask: Task | null;
   /** Estimated break length in seconds while working */
   estimatedBreakTime: number;
@@ -40,8 +40,10 @@ interface TimerProps {
   theme: 'light' | 'dark';
   /** Selected accent color token */
   accentColor: string;
-  /** Compact layout toggle from App */
-  isCompact: boolean;
+  /** Widget mode toggle from App */
+  isWidget: boolean;
+  /** User settings */
+  settings: Settings;
 }
 
 function Timer({
@@ -55,7 +57,8 @@ function Timer({
   estimatedBreakTime,
   theme,
   accentColor,
-  isCompact
+  isWidget,
+  settings
 }: TimerProps) {
   /**
    * formatTime()
@@ -83,8 +86,27 @@ function Timer({
   };
  
   // Preserve original gating flags (needed by controls)
-  const canStart = Boolean(!isRunning && !isBreak && activeTask);
+  // If tasks are disabled OR task selection is not required, allow start without activeTask
+  // Use default values for backward compatibility
+  const showTasks = settings.showTasks ?? true;
+  const requireTaskSelection = settings.requireTaskSelection ?? true;
+  
+  const canStart = Boolean(!isRunning && !isBreak && (
+    !showTasks || // Tasks disabled - can start without task
+    !requireTaskSelection || // Task selection not required
+    activeTask // Has selected task
+  ));
   const canStop = Boolean(isRunning && !isBreak);
+
+  // Debug logging
+  console.log('Timer debug:', {
+    isRunning,
+    isBreak,
+    activeTask: activeTask?.name || 'none',
+    showTasks,
+    requireTaskSelection,
+    canStart
+  });
  
   // Detect Color Timer state from saved settings (avoid prop drilling)
   const colorTimerOn = (window.localStorage.getItem('flow-settings') || '').includes('"colorTimer":true');
@@ -99,13 +121,13 @@ function Timer({
           colorTimerOn ? 'text-white' : (theme === 'dark' ? 'text-gray-200' : 'text-gray-800')
         ].join(' ')}
       >
-        {isBreak ? 'BREAK' : (activeTask ? activeTask.name : 'READY')}
+        {isBreak ? 'RELAX' : (activeTask ? activeTask.name : 'FOCUS')}
       </div>
 
       {/* Timer Display */}
       <div
         className={[
-          isCompact ? 'text-5xl' : 'text-7xl',
+           isWidget ? 'text-6xl' : 'text-7xl',
           'font-sans font-bold tracking-tight mb-6',
           colorTimerOn ? 'text-white' : (theme === 'dark' ? 'text-white' : 'text-gray-900')
         ].join(' ')}
@@ -121,8 +143,8 @@ function Timer({
           onClick={canStart ? onStart : canStop ? onStop : undefined}
           disabled={!canStart && !canStop}
           className={`${
-            isCompact ? 'w-14 h-14' : 'w-16 h-16'
-          } rounded-full flex items-center justify-center font-semibold transition-all transform ${
+            isWidget ? 'w-14 h-14' : 'w-16 h-16'
+          } rounded-full flex items-center justify-center font-semibold transition-all transform animate-fade-in-up ${
             (() => {
               if (!(canStart || canStop)) {
                 return colorTimerOn
@@ -182,7 +204,7 @@ function Timer({
               : undefined
           }
         >
-          {isRunning ? <Pause size={isCompact ? 20 : 24} /> : <Play size={isCompact ? 20 : 24} />}
+          {isRunning ? <Pause size={isWidget ? 20 : 24} /> : <Play size={isWidget ? 20 : 24} />}
         </button>
 
         {/* Reset Button */}
@@ -190,8 +212,8 @@ function Timer({
           <button
             onClick={handleReset}
             className={`${
-              isCompact ? 'w-10 h-10' : 'w-12 h-12'
-            } rounded-full flex items-center justify-center transition-all ${
+            isWidget ? 'w-10 h-10' : 'w-12 h-12'
+            } rounded-full flex items-center justify-center transition-all animate-fade-in-up ${
               colorTimerOn
                 ? 'bg-white/20 hover:bg-white/30 text-white'
                 : (theme === 'dark'
@@ -199,18 +221,18 @@ function Timer({
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-600')
             }`}
           >
-            <RotateCcw size={isCompact ? 16 : 18} />
+          <RotateCcw size={isWidget ? 16 : 18} />
           </button>
         )}
       </div>
 
-      {/* Estimated Break Time */}
-      {isRunning && !isBreak && estimatedBreakTime > 0 && (
+      {/* Estimated Break Time (only after >= 60s of work) */}
+      {isRunning && !isBreak && estimatedBreakTime > 0 && time >= 60 && (
         <div
           className={[
             'mt-4',
             'flex items-center justify-center gap-2',
-            isCompact ? 'text-xs' : 'text-sm',
+            isWidget ? 'text-xs' : 'text-sm',
             colorTimerOn ? 'text-white/90' : (theme === 'dark' ? 'text-gray-400' : 'text-gray-500')
           ].join(' ')}
         >
@@ -285,7 +307,7 @@ function Timer({
       )}
 
       {/* No Task Warning */}
-      {!activeTask && !isCompact && (
+      {!activeTask && !isWidget && showTasks && requireTaskSelection && (
         <div className={`mt-4 text-sm ${colorTimerOn ? 'text-white/90' : (theme === 'dark' ? 'text-gray-400' : 'text-gray-500')}`}>
           Select a task to start the timer
         </div>

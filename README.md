@@ -2,6 +2,8 @@
 
 Lightweight productivity timer with tasks, goals, sessions history, theming and accent customization. Built with Vite, React, TypeScript, and Tailwind.
 
+English | [Русский](README.ru.md)
+
 - Live dev: `npm run dev`
 - Production build: `npm run build`
 - Preview: `npm run preview`
@@ -9,25 +11,26 @@ Lightweight productivity timer with tasks, goals, sessions history, theming and 
 
 ## Docs
 
-- Architecture overview: [`docs.Architecture.md`](docs/Architecture.md)
-- Public API reference: [`docs.API.md`](docs/API.md)
-- Accent usage guideline: [`docs.accent-usage.md`](docs/accent-usage.md)
+- Architecture overview: [docs/Architecture.md](docs/Architecture.md)
+- Public API reference: [docs/API.md](docs/API.md)
+- Accent usage guideline: [docs/accent-usage.md](docs/accent-usage.md)
+- Music player design: [docs/music-player.md](docs/music-player.md)
 
 ## Project Map
 
-- App composition: [`src.App.tsx`](src/App.tsx)
-- Entry: [`src.main.tsx`](src/main.tsx), Error boundary: [`src.components.ErrorBoundary.tsx`](src/components/ErrorBoundary.tsx)
+- App composition: [src/App.tsx](src/App.tsx)
+- Entry: [src/main.tsx](src/main.tsx), Error boundary: [src/components/ErrorBoundary.tsx](src/components/ErrorBoundary.tsx)
 - Hooks:
-  - [`src.hooks.useLocalStorage()`](src/hooks/useLocalStorage.ts)
-  - [`src.hooks.useTasks()`](src/hooks/useTasks.ts)
-  - [`src.hooks.useTimer()`](src/hooks/useTimer.ts)
-  - [`src.hooks.useTheme()`](src/hooks/useTheme.ts)
+  - [src/hooks/useLocalStorage.ts](src/hooks/useLocalStorage.ts)
+  - [src/hooks/useTasks.ts](src/hooks/useTasks.ts)
+  - [src/hooks/useTimer.ts](src/hooks/useTimer.ts)
+  - [src/hooks/useTheme.ts](src/hooks/useTheme.ts)
 - UI:
-  - [`src.components.Timer.tsx`](src/components/Timer.tsx)
-  - [`src.components.TaskManager.tsx`](src/components/TaskManager.tsx)
-  - [`src.components.History.tsx`](src/components/History.tsx)
-  - [`src.components.SettingsPanel.tsx`](src/components/SettingsPanel.tsx)
-  - [`src.components.MusicPlayer.tsx`](src/components/MusicPlayer.tsx)
+  - [src/components/Timer.tsx](src/components/Timer.tsx)
+  - [src/components/TaskManager.tsx](src/components/TaskManager.tsx)
+  - [src/components/History.tsx](src/components/History.tsx)
+  - [src/components/SettingsPanel.tsx](src/components/SettingsPanel.tsx)
+  - [src/components/MusicPlayer.tsx](src/components/MusicPlayer.tsx)
 
 ## Key Concepts
 

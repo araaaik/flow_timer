@@ -149,10 +149,37 @@ function History({
   const taskTime = taskSessions.reduce((sum, s) => sum + s.duration, 0);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className={`${
-        theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-      } rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden`}>
+    <>
+      <style>{`
+        .history-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .history-scrollbar::-webkit-scrollbar-button {
+          display: none;
+          height: 0;
+          width: 0;
+        }
+        .history-scrollbar::-webkit-scrollbar-button:start:decrement,
+        .history-scrollbar::-webkit-scrollbar-button:end:increment {
+          display: none;
+          height: 0;
+          width: 0;
+        }
+        .history-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .history-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: 4px;
+        }
+        .history-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(0, 0, 0, 0.3);
+        }
+      `}</style>
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-6">
+        <div className={`${
+          theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+        } rounded-2xl w-full max-w-2xl mx-auto max-h-[90vh] overflow-hidden shadow-2xl`}>
         {/* Header */}
         <div className={`flex items-center justify-between p-6 border-b ${
           theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
@@ -197,7 +224,7 @@ function History({
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)] history-scrollbar">
           {/* View Toggle */}
           <div className="flex items-center justify-between mb-6">
             <div className={`flex rounded-lg p-1 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}`}>
@@ -284,125 +311,81 @@ function History({
             <div>
               {/* Day Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                  <div className={`text-2xl font-bold ${
-                    (() => {
-                      const map: Record<string, string> = {
-                        blue: 'text-blue-500',
-                        red: 'text-red-500',
-                        green: 'text-green-500',
-                        purple: 'text-purple-500',
-                        orange: 'text-orange-500',
-                        pink: 'text-pink-500',
-                        indigo: 'text-indigo-500',
-                        yellow: 'text-yellow-500',
-                        teal: 'text-teal-500',
-                        cyan: 'text-cyan-500',
-                        lime: 'text-lime-500',
-                        emerald: 'text-emerald-500',
-                        violet: 'text-violet-500',
-                        rose: 'text-rose-500',
-                        slate: 'text-slate-500',
-                        black: 'text-black',
+                <div 
+                  className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-1"
+                  style={{
+                    backgroundColor: (() => {
+                      const accentHexMap: Record<string, string> = {
+                        blue: '#3b82f6', purple: '#8b5cf6', green: '#266a5b', red: '#ef4444',
+                        orange: '#f97316', pink: '#ec4899', indigo: '#6366f1', yellow: '#eab308',
+                        teal: '#14b8a6', cyan: '#06b6d4', lime: '#84cc16', emerald: '#10b981',
+                        violet: '#8b5cf6', rose: '#f43f5e', slate: '#64748b', black: '#111827'
                       };
-                      return map[accentColor] ?? 'text-blue-500';
+                      return accentHexMap[accentColor] ?? '#3b82f6';
                     })()
-                  }`}
-                  style={accentColor === 'green' ? { color: '#266a5b' } : undefined}
+                  }}
                 >
+                  <div className="text-2xl font-bold text-white">
                     {formatTime(dayStats.totalTime)}
                   </div>
-                  <div className="text-sm text-gray-500">Total Time</div>
+                  <div className="text-sm text-white/80">Total Time</div>
                 </div>
-                <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                  <div className={`text-2xl font-bold ${
-                    (() => {
-                      const map: Record<string, string> = {
-                        blue: 'text-blue-500',
-                        red: 'text-red-500',
-                        green: 'text-green-500',
-                        purple: 'text-purple-500',
-                        orange: 'text-orange-500',
-                        pink: 'text-pink-500',
-                        indigo: 'text-indigo-500',
-                        yellow: 'text-yellow-500',
-                        teal: 'text-teal-500',
-                        cyan: 'text-cyan-500',
-                        lime: 'text-lime-500',
-                        emerald: 'text-emerald-500',
-                        violet: 'text-violet-500',
-                        rose: 'text-rose-500',
-                        slate: 'text-slate-500',
-                        black: 'text-black',
+                <div 
+                  className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-2"
+                  style={{
+                    backgroundColor: (() => {
+                      const accentHexMap: Record<string, string> = {
+                        blue: '#3b82f6', purple: '#8b5cf6', green: '#266a5b', red: '#ef4444',
+                        orange: '#f97316', pink: '#ec4899', indigo: '#6366f1', yellow: '#eab308',
+                        teal: '#14b8a6', cyan: '#06b6d4', lime: '#84cc16', emerald: '#10b981',
+                        violet: '#8b5cf6', rose: '#f43f5e', slate: '#64748b', black: '#111827'
                       };
-                      return map[accentColor] ?? 'text-blue-500';
+                      return accentHexMap[accentColor] ?? '#3b82f6';
                     })()
-                  }`}
-                  style={accentColor === 'green' ? { color: '#266a5b' } : undefined}
+                  }}
                 >
+                  <div className="text-2xl font-bold text-white">
                     {dayStats.sessionCount}
                   </div>
-                  <div className="text-sm text-gray-500">Sessions</div>
+                  <div className="text-sm text-white/80">Sessions</div>
                 </div>
-                <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                  <div className={`text-2xl font-bold ${
-                    (() => {
-                      const map: Record<string, string> = {
-                        blue: 'text-blue-500',
-                        red: 'text-red-500',
-                        green: 'text-green-500',
-                        purple: 'text-purple-500',
-                        orange: 'text-orange-500',
-                        pink: 'text-pink-500',
-                        indigo: 'text-indigo-500',
-                        yellow: 'text-yellow-500',
-                        teal: 'text-teal-500',
-                        cyan: 'text-cyan-500',
-                        lime: 'text-lime-500',
-                        emerald: 'text-emerald-500',
-                        violet: 'text-violet-500',
-                        rose: 'text-rose-500',
-                        slate: 'text-slate-500',
-                        black: 'text-black',
+                <div 
+                  className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-3"
+                  style={{
+                    backgroundColor: (() => {
+                      const accentHexMap: Record<string, string> = {
+                        blue: '#3b82f6', purple: '#8b5cf6', green: '#266a5b', red: '#ef4444',
+                        orange: '#f97316', pink: '#ec4899', indigo: '#6366f1', yellow: '#eab308',
+                        teal: '#14b8a6', cyan: '#06b6d4', lime: '#84cc16', emerald: '#10b981',
+                        violet: '#8b5cf6', rose: '#f43f5e', slate: '#64748b', black: '#111827'
                       };
-                      return map[accentColor] ?? 'text-blue-500';
+                      return accentHexMap[accentColor] ?? '#3b82f6';
                     })()
-                  }`}
-                  style={accentColor === 'green' ? { color: '#266a5b' } : undefined}
+                  }}
                 >
+                  <div className="text-2xl font-bold text-white">
                     {formatTime(Math.round(dayStats.avgSession))}
                   </div>
-                  <div className="text-sm text-gray-500">Average</div>
+                  <div className="text-sm text-white/80">Average</div>
                 </div>
-                <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                  <div className={`text-2xl font-bold ${
-                    (() => {
-                      const map: Record<string, string> = {
-                        blue: 'text-blue-500',
-                        red: 'text-red-500',
-                        green: 'text-green-500',
-                        purple: 'text-purple-500',
-                        orange: 'text-orange-500',
-                        pink: 'text-pink-500',
-                        indigo: 'text-indigo-500',
-                        yellow: 'text-yellow-500',
-                        teal: 'text-teal-500',
-                        cyan: 'text-cyan-500',
-                        lime: 'text-lime-500',
-                        emerald: 'text-emerald-500',
-                        violet: 'text-violet-500',
-                        rose: 'text-rose-500',
-                        slate: 'text-slate-500',
-                        black: 'text-black',
+                <div 
+                  className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-4"
+                  style={{
+                    backgroundColor: (() => {
+                      const accentHexMap: Record<string, string> = {
+                        blue: '#3b82f6', purple: '#8b5cf6', green: '#266a5b', red: '#ef4444',
+                        orange: '#f97316', pink: '#ec4899', indigo: '#6366f1', yellow: '#eab308',
+                        teal: '#14b8a6', cyan: '#06b6d4', lime: '#84cc16', emerald: '#10b981',
+                        violet: '#8b5cf6', rose: '#f43f5e', slate: '#64748b', black: '#111827'
                       };
-                      return map[accentColor] ?? 'text-blue-500';
+                      return accentHexMap[accentColor] ?? '#3b82f6';
                     })()
-                  }`}
-                  style={accentColor === 'green' ? { color: '#266a5b' } : undefined}
+                  }}
                 >
+                  <div className="text-2xl font-bold text-white">
                     {formatTime(dayStats.longestSession)}
                   </div>
-                  <div className="text-sm text-gray-500">Longest</div>
+                  <div className="text-sm text-white/80">Longest</div>
                 </div>
               </div>
 
@@ -422,7 +405,11 @@ function History({
                 {dayStats.sessionCount > 0 && (
                   <button
                     onClick={handleDeleteDay}
-                    className="flex items-center px-3 py-2 rounded-lg text-sm bg-red-500 hover:bg-red-600 text-white"
+                    className={`flex items-center px-3 py-2 rounded-lg text-sm ${
+                      theme === 'dark'
+                        ? 'bg-gray-600 hover:bg-gray-500 text-gray-200'
+                        : 'bg-gray-500 hover:bg-gray-600 text-white'
+                    }`}
                   >
                     <Trash2 size={14} className="mr-1" />
                     Delete Day
@@ -472,7 +459,11 @@ function History({
                       </span>
                       <button
                         onClick={() => handleDeleteSession(session.id)}
-                        className="p-1 rounded text-red-400 hover:text-red-500 hover:bg-red-50"
+                        className={`p-1 rounded ${
+                          theme === 'dark'
+                            ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-600'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                        }`}
                       >
                         <X size={14} />
                       </button>
@@ -571,6 +562,7 @@ function History({
         </div>
       </div>
     </div>
+    </>
   );
 }
 

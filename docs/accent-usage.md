@@ -38,7 +38,9 @@ Notes: Neutral task containers remain theme surfaces; only accent rings/badges/b
 Accent applies to:
 - Header icon
 - Active period tabs (Day/Week/Month)
-- Big numbers in metric cards
+- **Statistics cards background** (Total Time, Sessions, Average, Longest)
+  - Cards use accent color as background with white text
+  - Labels use semi-transparent white (`text-white/80`)
 - Session duration text
 - Selected day tiles in week view
 Implementation: Tailwind class maps for all accents + optional inline style hooks for a custom hex.
@@ -52,6 +54,14 @@ Implementation: Tailwind class maps for all accents + optional inline style hook
     - When playing: dot is colored with the current accent (green uses #266a5b) and may pulse.
     - When paused: dot remains neutral gray (dark: #9ca3af, light: #9ca3af).
   - Implementation: inline per-accent color map and conditional styles based on player state; accent is read from `flow-settings`.
+  - Volume control:
+    - The slider track active segment and thumb use the current accent color.
+    - Implemented via CSS variable `--slider-accent` set on the player root and used in slider thumb styles.
+    - The background gradient of the slider uses the resolved accent HEX for the filled portion.
+  - Stream tiles (selection states):
+    - Active tile border uses the accent color and increased thickness.
+    - An accent-colored translucent overlay is applied over the thumbnail when active.
+    - The “Active” badge uses the accent background.
 
 5) App ([src/App.tsx](src/App.tsx))
 - Header status dot (left of FLOW)
@@ -78,9 +88,10 @@ These are the exact code locations where custom per-accent hex overrides are app
   - Today time badge background in [src/components/TaskManager.tsx](src/components/TaskManager.tsx)
   - Progress bar inner segment background in [src/components/TaskManager.tsx](src/components/TaskManager.tsx)
 - History
-  - Header icon color, active tab background, metric numbers, session duration, selected day accents in [src/components/History.tsx](src/components/History.tsx)
+  - Header icon color, active tab background, statistics cards background, session duration, selected day accents in [src/components/History.tsx](src/components/History.tsx)
 - Music Player
   - Playing indicator dot in [src/components/MusicPlayer.tsx](src/components/MusicPlayer.tsx)
+  - Volume slider accent (track + thumb) in [src/components/MusicPlayer.tsx](src/components/MusicPlayer.tsx)
 - App
   - Timer surface background (Color Timer ON) in [src/App.tsx](src/App.tsx)
 

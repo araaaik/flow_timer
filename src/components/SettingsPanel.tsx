@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, BellOff, Palette, Layers, Brush } from 'lucide-react';
+import { Bell, BellOff, Palette, Layers, Brush, Music } from 'lucide-react';
 import type { Settings } from '../App';
 
 /**
@@ -191,6 +191,93 @@ function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps
                   />
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tasks */}
+        <div>
+          <h4 className={`text-sm font-medium mb-3 ${
+            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+          }`}>
+            TASKS
+          </h4>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Layers size={16} className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
+                <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Show tasks panel
+                </span>
+              </div>
+              <button
+                onClick={() => onUpdateSettings({ showTasks: !settings.showTasks })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  settings.showTasks 
+                    ? 'bg-blue-500' 
+                    : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                }`}
+                aria-pressed={!!settings.showTasks}
+                aria-label="Toggle tasks panel"
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    settings.showTasks ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+            
+            {settings.showTasks && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Brush size={16} className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
+                  <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Require task selection
+                  </span>
+                </div>
+                <button
+                  onClick={() => onUpdateSettings({ requireTaskSelection: !settings.requireTaskSelection })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.requireTaskSelection
+                      ? 'bg-blue-500'
+                      : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                  }`}
+                  aria-pressed={!!settings.requireTaskSelection}
+                  aria-label="Toggle require task selection"
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.requireTaskSelection ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            )}
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Music size={16} className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
+                <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Show music player
+                </span>
+              </div>
+              <button
+                onClick={() => onUpdateSettings({ showMusicPlayer: !(settings.showMusicPlayer ?? true) })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  (settings.showMusicPlayer ?? true)
+                    ? 'bg-blue-500'
+                    : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                }`}
+                aria-pressed={!!(settings.showMusicPlayer ?? true)}
+                aria-label="Toggle music player"
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    (settings.showMusicPlayer ?? true) ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
             </div>
           </div>
         </div>

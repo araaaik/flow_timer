@@ -83,7 +83,7 @@ export function useTasks() {
    * setActiveTask()
    * Persist active selection for cross-reload continuity.
    */
-  const setActiveTask = (task: Task) => {
+  const setActiveTask = (task: Task | null) => {
     setActiveTaskState(task);
   };
 
