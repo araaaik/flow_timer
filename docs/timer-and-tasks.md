@@ -2,37 +2,44 @@
 
 ## Overview
 
-FLOW is a productivity timer application that implements the **Flowmodoro technique** with flexible task management. Unlike traditional Pomodoro with fixed 25-minute intervals, Flowmodoro allows you to work for as long as you're in flow state, then automatically calculates break time as 1/5 of your work time. The app features a drift-free timer, automatic break calculation, and comprehensive session tracking.
+FLOW is a productivity timer application that supports both **Flow mode** and **Pomodoro mode** with flexible task management. Flow mode allows you to work for as long as you're in flow state with configurable break options, while Pomodoro mode provides structured work/break cycles. The app features a drift-free timer, flexible break calculation, session counting, and comprehensive session tracking.
 
 ## Core Components
 
 ### Timer System
 
-The timer is the heart of FLOW, implementing the Flowmodoro technique with accurate time tracking and automatic break calculation based on work duration.
+The timer is the heart of FLOW, supporting both Flow and Pomodoro modes with accurate time tracking and flexible break management.
 
 #### Timer Features
 
+- **Dual modes**: Flow mode (flexible timing) and Pomodoro mode (structured cycles)
 - **Drift-free timing**: Uses `Date.now()` and `requestAnimationFrame` for precise timing that survives browser tab switching
 - **Persistent state**: Timer state is saved to localStorage and resumes correctly after page reloads
-- **Flowmodoro breaks**: Break time is automatically calculated as `floor(workedSeconds / 5)` (20% of work time)
-- **Flexible work sessions**: No fixed time limits - work as long as you're in flow state
-- **Visual feedback**: Large time display with status indicators (FOCUS/Task Name/RELAX)
-- **Estimated break preview**: Shows calculated break time while working (after 60+ seconds)
+- **Configurable breaks**: Multiple break calculation options (percentage, fixed, or disabled)
+- **Break skipping**: Skip any break with the SKIP button when in flow state
+- **Session management**: Automatic session counting in Pomodoro mode
+- **Visual feedback**: Large time display with status indicators and session counters
+- **Break preview**: Shows upcoming break duration while working
 - **Audio notifications**: Customizable sound alerts when breaks end
 - **Visual notifications**: Browser notifications when breaks complete
 
 #### Timer States
 
 1. **Idle**: Timer is stopped, showing 00:00
-2. **Running (Work)**: Counting up elapsed work time
-3. **Running (Break)**: Counting down remaining break time
-4. **Paused**: Work session paused (can be resumed)
+2. **Running (Work)**: 
+   - Flow mode: Counting up elapsed work time
+   - Pomodoro mode: Counting down from work duration
+3. **Running (Break)**: Counting down remaining break time (both modes)
+4. **Paused**: Work session paused (Flow mode only, can be resumed)
 
 #### Timer Controls
 
-- **Start/Stop Button**: Primary control for starting work sessions and stopping to begin breaks
-- **Reset Button**: Appears when timer is running or has time > 0, requires confirmation
-- **Estimated Break Display**: Shows calculated break time after 60+ seconds of work
+- **Start/Stop/Skip Button**: 
+  - Start: Begin work session (Play icon)
+  - Stop: End work session and start break (Pause icon)
+  - Skip: Skip current break (SKIP text)
+- **Reset Button**: Appears when timer is running or has time > 0 (hidden during breaks)
+- **Break Preview Display**: Shows upcoming break duration while working
 
 ### Task Management
 
@@ -67,6 +74,52 @@ interface Task {
 
 ## Settings and Configuration
 
+### Timer Mode Settings
+
+#### Timer Mode (`timerMode`)
+- **Default**: `'flow'`
+- **Options**: `'flow'` | `'pomodoro'`
+- **Description**: Selects between Flow mode (flexible timing) and Pomodoro mode (structured cycles)
+
+#### Flow Mode Settings
+
+##### Enable Breaks (`flowBreakEnabled`)
+- **Default**: `true`
+- **Description**: Controls whether breaks are taken after work sessions in Flow mode
+- **When disabled**: Timer resets to 00:00 immediately after stopping
+
+##### Break Calculation Type (`flowBreakType`)
+- **Default**: `'percentage'`
+- **Options**: `'percentage'` | `'fixed'`
+- **Description**: How break duration is calculated
+
+##### Break Percentage (`flowBreakPercentage`)
+- **Default**: `20`
+- **Options**: `10` | `15` | `20` | `25`
+- **Description**: Percentage of work time used for break (when using percentage calculation)
+
+##### Fixed Break Duration (`flowBreakFixed`)
+- **Default**: `10`
+- **Options**: `5` | `10` | `20` | `30`
+- **Description**: Fixed break duration in minutes (when using fixed calculation)
+
+#### Pomodoro Mode Settings
+
+##### Work Duration (`pomodoroWorkDuration`)
+- **Default**: `25`
+- **Range**: `1-60` minutes
+- **Description**: Duration of each work session
+
+##### Break Duration (`pomodoroBreakDuration`)
+- **Default**: `5`
+- **Range**: `1-30` minutes
+- **Description**: Duration of breaks between work sessions
+
+##### Number of Sessions (`pomodoroSessions`)
+- **Default**: `4`
+- **Range**: `1-8` sessions
+- **Description**: Total number of work sessions in a Pomodoro cycle
+
 ### Task Settings
 
 #### Show Tasks (`showTasks`)
@@ -87,12 +140,14 @@ interface Task {
 
 ### Timer Behavior Matrix
 
-| showTasks | requireTaskSelection | Behavior |
-|-----------|---------------------|----------|
-| `true` | `true` | Full task mode - must select task to start |
-| `true` | `false` | Optional task mode - can start with or without task |
-| `false` | `true` | Focus-only mode - no tasks shown |
-| `false` | `false` | Focus-only mode - no tasks shown |
+| timerMode | showTasks | requireTaskSelection | Behavior |
+|-----------|-----------|---------------------|----------|
+| `flow` | `true` | `true` | Flow mode with full task integration |
+| `flow` | `true` | `false` | Flow mode with optional task selection |
+| `flow` | `false` | any | Flow mode, focus-only sessions |
+| `pomodoro` | `true` | `true` | Pomodoro mode with full task integration |
+| `pomodoro` | `true` | `false` | Pomodoro mode with optional task selection |
+| `pomodoro` | `false` | any | Pomodoro mode, focus-only sessions |
 
 ### Other Settings
 
@@ -237,48 +292,92 @@ The app performs a daily reset at midnight:
 
 ## Usage Patterns
 
-### Basic Flowmodoro
+### Flow Mode Usage
+
+#### Basic Flow with Percentage Breaks
 1. Select or create a task
 2. Start timer
 3. Work for as long as you're in flow state (no fixed time limit)
 4. Stop timer when you naturally feel ready for a break
-5. Automatic break starts (duration = work_time ÷ 5)
-6. Take break until notification
+5. Automatic break starts (duration = work_time × percentage)
+6. Take break until notification or skip if still in flow
 7. Repeat
 
-**Example**: Work for 50 minutes → Get 10-minute break
+**Example**: Work for 50 minutes → Get 10-minute break (20% setting)
 
-### Focus Sessions
+#### Flow with No Breaks
+1. Disable breaks in timer settings
+2. Start timer and work naturally
+3. Stop timer when ready - immediately resets to 00:00
+4. Take breaks manually when needed
+5. Good for deep work sessions
+
+#### Flow with Fixed Breaks
+1. Set break type to "fixed" with desired duration
+2. Work for any duration
+3. Always get consistent break time
+4. Predictable recovery periods
+
+### Pomodoro Mode Usage
+
+#### Classic Pomodoro
+1. Set 25-minute work, 5-minute breaks, 4 sessions
+2. Start timer - countdown begins
+3. Work until timer reaches 00:00
+4. Automatic break starts
+5. Repeat for all sessions
+6. Complete notification after final session
+
+**Example**: 25min work → 5min break → 25min work → 5min break → repeat
+
+#### Custom Pomodoro Cycles
+1. Configure work/break durations and session count
+2. Start structured work cycle
+3. Follow automatic transitions
+4. Skip breaks when in flow state
+5. Complete full cycle
+
+### Focus Sessions (Both Modes)
 1. Disable "Require task selection" in settings
 2. Start timer without selecting task
 3. Work in "Focus" mode
 4. Sessions automatically named "Focus #1", etc.
 
-### Task-Only Mode
-1. Enable tasks but disable task requirement
-2. Optionally select tasks for tracking
-3. Can start timer with or without task selection
-4. Flexible workflow adaptation
+### Task Integration (Both Modes)
+1. Enable tasks and require task selection
+2. Create and select tasks for tracking
+3. Timer updates task time spent
+4. View progress and history
 
-### Widget Mode
+### Widget Mode (Both Modes)
 1. Enable widget mode
 2. Minimal interface for distraction-free work
 3. Essential controls only
 4. Perfect for secondary monitors or small screens
 
-## Flowmodoro vs Traditional Pomodoro
+## Flow Mode vs Pomodoro Mode Comparison
 
-| Aspect | Traditional Pomodoro | Flowmodoro (FLOW) |
-|--------|---------------------|-------------------|
-| **Work Duration** | Fixed 25 minutes | Flexible - work until natural break point |
-| **Break Calculation** | Fixed 5 minutes | Dynamic - 20% of work time (work_time ÷ 5) |
-| **Flow State** | May interrupt flow | Respects natural flow state |
-| **Flexibility** | Rigid schedule | Adaptive to your rhythm |
-| **Break Examples** | Always 5 min | 10 min work → 2 min break<br>60 min work → 12 min break |
+| Aspect | Flow Mode | Pomodoro Mode |
+|--------|-----------|---------------|
+| **Work Duration** | Flexible - work until natural break point | Fixed duration (configurable 1-60 min) |
+| **Break Calculation** | Configurable (percentage/fixed/disabled) | Fixed duration (configurable 1-30 min) |
+| **Flow State** | Respects natural flow state | May interrupt flow at fixed intervals |
+| **Structure** | Self-directed, flexible | Time-boxed, structured |
+| **Session Management** | Individual sessions | Planned cycles with counting |
+| **Break Control** | Optional, always skippable | Automatic, skippable |
+| **Time Display** | Count up (00:00 → 25:30) | Count down (25:00 → 00:00) |
 
-### Benefits of Flowmodoro
+### Benefits of Flow Mode
 - **Preserves flow state**: No artificial interruptions when you're productive
-- **Natural breaks**: Break duration matches your effort level
-- **Flexible scheduling**: Adapts to different types of work
-- **Reduced context switching**: Fewer forced interruptions
-- **Sustainable productivity**: Breaks scale with work intensity
+- **Flexible breaks**: Choose percentage, fixed, or no breaks
+- **Natural rhythm**: Work duration adapts to task complexity
+- **Break skipping**: Skip breaks when still in flow
+- **Sustainable productivity**: Breaks scale with work intensity (percentage mode)
+
+### Benefits of Pomodoro Mode
+- **Time structure**: Fixed work periods create urgency and focus
+- **Predictable breaks**: Regular recovery periods prevent fatigue
+- **Session tracking**: Clear progress through planned cycles
+- **Habit formation**: Consistent timing builds work rhythms
+- **External accountability**: Timer creates commitment to work periods
+- **Break skipping**: Skip breaks when in flow while maintaining structure

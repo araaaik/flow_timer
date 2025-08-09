@@ -2,6 +2,8 @@ import React from 'react';
 import { Play, Pause, RotateCcw } from 'lucide-react';
 import type { Task, Settings } from '../App';
 
+import { useColorSystem } from '../hooks/useColorSystem';
+
 /**
  * Timer.tsx
  * Stateless presentational component that renders:
@@ -32,10 +34,16 @@ interface TimerProps {
   onStop: () => void;
   /** Reset any session state (confirmation handled in component) */
   onReset: () => void;
+  /** Skip current break */
+  onSkipBreak?: () => void;
   /** The currently selected task (null means FOCUS) */
   activeTask: Task | null;
   /** Estimated break length in seconds while working */
   estimatedBreakTime: number;
+  /** Current session number (for Pomodoro mode) */
+  currentSession?: number;
+  /** Total sessions (for Pomodoro mode) */
+  totalSessions?: number;
   /** Current global theme */
   theme: 'light' | 'dark';
   /** Selected accent color token */
@@ -53,13 +61,25 @@ function Timer({
   onStart,
   onStop,
   onReset,
+  onSkipBreak,
   activeTask,
   estimatedBreakTime,
+  currentSession = 1,
+  totalSessions = 1,
   theme,
   accentColor,
   isWidget,
   settings
 }: TimerProps) {
+  const colorSystem = useColorSystem();
+  
+  // Get hex color for current accent
+  const getAccentHex = () => {
+    const allColors = colorSystem.getAllAccentColors();
+    const color = allColors.find(c => c.value === accentColor);
+    return color?.color || '#3b82f6'; // fallback to blue
+  };
+  
   /**
    * formatTime()
    * Render seconds as "mm:ss" or "h:mm:ss" when hours > 0.
@@ -111,8 +131,27 @@ function Timer({
   // Detect Color Timer state from saved settings (avoid prop drilling)
   const colorTimerOn = (window.localStorage.getItem('flow-settings') || '').includes('"colorTimer":true');
 
+  const timerMode = settings.timerMode ?? 'flow';
+
   return (
-    <div className="text-center">
+    <>
+      <style>{`
+        .timer-accent-bg {
+          background-color: var(--accent-color) !important;
+          color: white !important;
+        }
+        
+        .timer-accent-bg:hover {
+          background-color: var(--accent-color-hover) !important;
+        }
+      `}</style>
+      <div 
+        className="text-center"
+        style={{
+          '--accent-color': getAccentHex(),
+          '--accent-color-hover': getAccentHex() + 'dd',
+        } as React.CSSProperties}
+      >
       {/* Status */}
       <div
         className={[
@@ -122,6 +161,11 @@ function Timer({
         ].join(' ')}
       >
         {isBreak ? 'RELAX' : (activeTask ? activeTask.name : 'FOCUS')}
+        {timerMode === 'pomodoro' && !isBreak && (
+          <span className="ml-2 text-xs opacity-75">
+            {currentSession}/{totalSessions}
+          </span>
+        )}
       </div>
 
       {/* Timer Display */}
@@ -138,15 +182,23 @@ function Timer({
 
       {/* Controls */}
       <div className="flex items-center justify-center space-x-4">
-        {/* Main Start/Stop Button */}
+        {/* Main Start/Stop/Skip Button */}
         <button
-          onClick={canStart ? onStart : canStop ? onStop : undefined}
-          disabled={!canStart && !canStop}
+          onClick={
+            isBreak && onSkipBreak 
+              ? onSkipBreak 
+              : canStart 
+                ? onStart 
+                : canStop 
+                  ? onStop 
+                  : undefined
+          }
+          disabled={!canStart && !canStop && !(isBreak && onSkipBreak)}
           className={`${
             isWidget ? 'w-14 h-14' : 'w-16 h-16'
           } rounded-full flex items-center justify-center font-semibold transition-all transform animate-fade-in-up ${
             (() => {
-              if (!(canStart || canStop)) {
+              if (!(canStart || canStop || (isBreak && onSkipBreak))) {
                 return colorTimerOn
                   ? 'bg-white/30 text-white/80 cursor-not-allowed'
                   : (theme === 'dark' ? 'bg-gray-600 text-white cursor-not-allowed' : 'bg-gray-300 text-white cursor-not-allowed');
@@ -154,61 +206,22 @@ function Timer({
               if (colorTimerOn) {
                 return 'text-white bg-white/20 hover:bg-white/30';
               }
-              const map: Record<string, string> = {
-                blue: 'text-white bg-blue-500 hover:bg-blue-600 shadow-lg',
-                red: 'text-white bg-red-500 hover:bg-red-600 shadow-lg',
-                green: 'text-white bg-green-500 hover:bg-green-600 shadow-lg',
-                purple: 'text-white bg-purple-500 hover:bg-purple-600 shadow-lg',
-                orange: 'text-white bg-orange-500 hover:bg-orange-600 shadow-lg',
-                pink: 'text-white bg-pink-500 hover:bg-pink-600 shadow-lg',
-                indigo: 'text-white bg-indigo-500 hover:bg-indigo-600 shadow-lg',
-                yellow: 'text-white bg-yellow-500 hover:bg-yellow-600 shadow-lg',
-                teal: 'text-white bg-teal-500 hover:bg-teal-600 shadow-lg',
-                cyan: 'text-white bg-cyan-500 hover:bg-cyan-600 shadow-lg',
-                lime: 'text-white bg-lime-500 hover:bg-lime-600 shadow-lg',
-                emerald: 'text-white bg-emerald-500 hover:bg-emerald-600 shadow-lg',
-                violet: 'text-white bg-violet-500 hover:bg-violet-600 shadow-lg',
-                rose: 'text-white bg-rose-500 hover:bg-rose-600 shadow-lg',
-                slate: 'text-white bg-slate-500 hover:bg-slate-600 shadow-lg',
-                black: 'text-white bg-black hover:bg-neutral-900 shadow-lg',
-              };
-              return map[accentColor] ?? 'text-white bg-blue-500 hover:bg-blue-600 shadow-lg';
+              return 'timer-accent-bg shadow-lg';
             })()
           }`}
-          style={
-            !colorTimerOn
-              ? (() => {
-                  // Use Tailwind's 500 swatch equivalents to keep consistency with other accent elements
-                  const solidHex: Record<string, string> = {
-                    blue: '#3b82f6',     // blue-500
-                    purple: '#8b5cf6',   // purple-500
-                    // Use project-approved green to stay consistent across app
-                    green: '#266a5b',
-                    red: '#ef4444',      // red-500
-                    orange: '#f97316',   // orange-500
-                    pink: '#ec4899',     // pink-500
-                    indigo: '#6366f1',   // indigo-500
-                    yellow: '#eab308',   // yellow-500
-                    teal: '#14b8a6',     // teal-500
-                    cyan: '#06b6d4',     // cyan-500
-                    lime: '#84cc16',     // lime-500
-                    emerald: '#10b981',  // emerald-500
-                    violet: '#8b5cf6',   // violet-500
-                    rose: '#f43f5e',     // rose-500
-                    slate: '#64748b',    // slate-500
-                    black: '#111827',    // black
-                  };
-                  const bg = solidHex[accentColor];
-                  return bg ? { backgroundColor: bg } : undefined;
-                })()
-              : undefined
-          }
+          title={isBreak ? 'Skip break' : isRunning ? 'Stop' : 'Start'}
         >
-          {isRunning ? <Pause size={isWidget ? 20 : 24} /> : <Play size={isWidget ? 20 : 24} />}
+          {isBreak ? (
+            <span className="text-sm font-bold">SKIP</span>
+          ) : isRunning ? (
+            <Pause size={isWidget ? 20 : 24} />
+          ) : (
+            <Play size={isWidget ? 20 : 24} />
+          )}
         </button>
 
         {/* Reset Button */}
-        {(isRunning || time > 0) && (
+        {(isRunning || time > 0) && !isBreak && (
           <button
             onClick={handleReset}
             className={`${
@@ -226,8 +239,10 @@ function Timer({
         )}
       </div>
 
-      {/* Estimated Break Time (only after >= 60s of work) */}
-      {isRunning && !isBreak && estimatedBreakTime > 0 && time >= 60 && (
+      {/* Estimated Break Time or Session Info */}
+      {isRunning && !isBreak && estimatedBreakTime > 0 && (
+        (timerMode === 'flow' && time >= 60) || timerMode === 'pomodoro'
+      ) && (
         <div
           className={[
             'mt-4',
@@ -236,7 +251,9 @@ function Timer({
             colorTimerOn ? 'text-white/90' : (theme === 'dark' ? 'text-gray-400' : 'text-gray-500')
           ].join(' ')}
         >
-          <span className="whitespace-nowrap">Estimated break:</span>
+          <span className="whitespace-nowrap">
+            {timerMode === 'flow' ? 'Estimated break:' : 'Next break:'}
+          </span>
           <div
             className={[
               'inline-flex items-center rounded-full px-2 py-0.5',
@@ -245,60 +262,16 @@ function Timer({
             style={
               !colorTimerOn && theme !== 'dark'
                 ? (() => {
-                    const chipHex: Record<string, { bg: string; text: string }> = {
-                      blue: { bg: '#3b82f620', text: '#3b82f6' },
-                      purple: { bg: '#8b5cf620', text: '#8b5cf6' },
-                      // Project green tint
-                      green: { bg: '#266a5b20', text: '#266a5b' },
-                      red: { bg: '#ef444420', text: '#ef4444' },
-                      orange: { bg: '#f9731620', text: '#f97316' },
-                      pink: { bg: '#ec489920', text: '#ec4899' },
-                      indigo: { bg: '#6366f120', text: '#6366f1' },
-                      yellow: { bg: '#eab30820', text: '#eab308' },
-                      teal: { bg: '#14b8a620', text: '#14b8a6' },
-                      cyan: { bg: '#06b6d420', text: '#06b6d4' },
-                      lime: { bg: '#84cc1620', text: '#84cc16' },
-                      emerald: { bg: '#10b98120', text: '#10b981' },
-                      violet: { bg: '#8b5cf620', text: '#8b5cf6' },
-                      rose: { bg: '#f43f5e20', text: '#f43f5e' },
-                      slate: { bg: '#64748b20', text: '#64748b' },
-                      black: { bg: '#11182720', text: '#111827' },
-                    };
-                    const c = chipHex[accentColor];
-                    return c ? { backgroundColor: c.bg } : undefined;
+                    const hex = getAccentHex();
+                    return { backgroundColor: hex + '20', color: hex };
                   })()
                 : undefined
             }
           >
             <span
-              className="tabular-nums whitespace-nowrap"
-              style={
-                !colorTimerOn && theme !== 'dark'
-                  ? (() => {
-                      const chipHex: Record<string, { bg: string; text: string }> = {
-                        blue: { bg: '#3b82f620', text: '#3b82f6' },
-                        purple: { bg: '#8b5cf620', text: '#8b5cf6' },
-                        // Project green tint
-                        green: { bg: '#266a5b20', text: '#266a5b' },
-                        red: { bg: '#ef444420', text: '#ef4444' },
-                        orange: { bg: '#f9731620', text: '#f97316' },
-                        pink: { bg: '#ec489920', text: '#ec4899' },
-                        indigo: { bg: '#6366f120', text: '#6366f1' },
-                        yellow: { bg: '#eab30820', text: '#eab308' },
-                        teal: { bg: '#14b8a620', text: '#14b8a6' },
-                        cyan: { bg: '#06b6d420', text: '#06b6d4' },
-                        lime: { bg: '#84cc1620', text: '#84cc16' },
-                        emerald: { bg: '#10b98120', text: '#10b981' },
-                        violet: { bg: '#8b5cf620', text: '#8b5cf6' },
-                        rose: { bg: '#f43f5e20', text: '#f43f5e' },
-                        slate: { bg: '#64748b20', text: '#64748b' },
-                        black: { bg: '#11182720', text: '#111827' },
-                      };
-                      const c = chipHex[accentColor];
-                      return c ? { color: c.text } : undefined;
-                    })()
-                  : undefined
-              }
+              className={`tabular-nums whitespace-nowrap ${
+                !colorTimerOn && theme !== 'dark' ? 'text-[var(--accent-color)]' : ''
+              }`}
             >
               {Math.ceil(estimatedBreakTime / 60)} min
             </span>
@@ -313,6 +286,7 @@ function Timer({
         </div>
       )}
     </div>
+    </>
   );
 }
 

@@ -70,6 +70,28 @@ export interface Settings {
   // Per-theme background choices (8 options each)
   lightBg?: 'gray-50' | 'gray-100' | 'gray-200' | 'gray-300' | 'gray-400' | 'gray-500' | 'slate-100' | 'neutral-100';
   darkBg?: 'gray-700' | 'gray-800' | 'gray-900' | 'gray-950' | 'slate-900' | 'neutral-900' | 'black' | 'neutral-950';
+  
+  // Timer mode settings
+  /** Timer mode: 'flow' for Flowmodoro, 'pomodoro' for classic Pomodoro */
+  timerMode?: 'flow' | 'pomodoro';
+  
+  // Flow mode settings
+  /** When true, enables break after work session in Flow mode */
+  flowBreakEnabled?: boolean;
+  /** Break calculation type: 'percentage' or 'fixed' */
+  flowBreakType?: 'percentage' | 'fixed';
+  /** Break percentage (10, 15, 20, 25) when using percentage type */
+  flowBreakPercentage?: 10 | 15 | 20 | 25;
+  /** Fixed break duration in minutes (5, 10, 20, 30) when using fixed type */
+  flowBreakFixed?: 5 | 10 | 20 | 30;
+  
+  // Pomodoro mode settings
+  /** Work session duration in minutes */
+  pomodoroWorkDuration?: number;
+  /** Break duration in minutes */
+  pomodoroBreakDuration?: number;
+  /** Number of sessions (1-8) */
+  pomodoroSessions?: number;
 }
 
 /**
@@ -102,6 +124,17 @@ function App() {
     showMusicPlayer: true,
     lightBg: 'gray-50',
     darkBg: 'gray-900',
+    // Timer mode defaults
+    timerMode: 'flow',
+    // Flow mode defaults
+    flowBreakEnabled: true,
+    flowBreakType: 'percentage',
+    flowBreakPercentage: 20,
+    flowBreakFixed: 10,
+    // Pomodoro mode defaults
+    pomodoroWorkDuration: 25,
+    pomodoroBreakDuration: 5,
+    pomodoroSessions: 4,
   });
 
   const { theme, toggleTheme, accentColor } = useTheme(settings.theme, settings.accentColor);
@@ -130,7 +163,10 @@ function App() {
     startTimer, 
     stopTimer, 
     resetTimer, 
-    estimatedBreakTime 
+    skipBreak,
+    estimatedBreakTime,
+    currentSession,
+    totalSessions
   } = useTimer(activeTask, tasks, sessions, setSessions, settings);
 
   // Check for daily reset
@@ -247,7 +283,7 @@ function App() {
                         const hex: Record<string, string> = {
                           blue: '#3b82f6',
                           purple: '#8b5cf6',
-                          green: '#266a5b',  // project green
+                          green: '#0f766e',  // project green
                           red: '#ef4444',
                           orange: '#f97316',
                           pink: '#ec4899',
@@ -292,7 +328,7 @@ function App() {
               </button>
 
               {/* Status dot uses accent color when on break */}
-              <style>{`:root{--accent-green:#266a5b}`}</style>
+              <style>{`:root{--accent-green:#0f766e}`}</style>
               
               {(settings.showMusicPlayer ?? true) && (
                 <button
@@ -308,7 +344,7 @@ function App() {
                     className={musicPlaying && !showMusicPlayer ? 'animate-pulse' : ''}
                     style={musicPlaying && !showMusicPlayer ? (() => {
                       const hex: Record<string, string> = {
-                        blue: '#3b82f6', purple: '#8b5cf6', green: '#266a5b', red: '#ef4444',
+                        blue: '#3b82f6', purple: '#8b5cf6', green: '#0f766e', red: '#ef4444',
                         orange: '#f97316', pink: '#ec4899', indigo: '#6366f1', yellow: '#eab308',
                         teal: '#14b8a6', cyan: '#06b6d4', lime: '#84cc16', emerald: '#10b981',
                         violet: '#8b5cf6', rose: '#f43f5e', slate: '#64748b', black: '#111827'
@@ -373,7 +409,7 @@ function App() {
                   isRunning
                     ? (() => {
                         const hex: Record<string, string> = {
-                          blue: '#3b82f6', purple: '#8b5cf6', green: '#266a5b', red: '#ef4444',
+                          blue: '#3b82f6', purple: '#8b5cf6', green: '#0f766e', red: '#ef4444',
                           orange: '#f97316', pink: '#ec4899', indigo: '#6366f1', yellow: '#eab308',
                           teal: '#14b8a6', cyan: '#06b6d4', lime: '#84cc16', emerald: '#10b981',
                           violet: '#8b5cf6', rose: '#f43f5e', slate: '#64748b', black: '#111827',
@@ -442,7 +478,7 @@ function App() {
                 <div className="space-y-6 sm:sticky sm:top-6 sm:self-start">
                   <div
                     className={`rounded-2xl p-6 ${cardShadow} transition-colors duration-300 ease-out-smooth ${timerSurfaceClass}`}
-                    style={settings.colorTimer && accentColor === 'green' ? { backgroundColor: '#266a5b', color: '#ffffff' } : undefined}
+                    style={settings.colorTimer && accentColor === 'green' ? { backgroundColor: '#0f766e', color: '#ffffff' } : undefined}
                   >
                     <Timer
                       time={time}
@@ -451,8 +487,11 @@ function App() {
                       onStart={startTimer}
                       onStop={stopTimer}
                       onReset={resetTimer}
+                      onSkipBreak={skipBreak}
                       activeTask={activeTask}
                       estimatedBreakTime={estimatedBreakTime}
+                      currentSession={currentSession}
+                      totalSessions={totalSessions}
                       theme={theme}
                       accentColor={accentColor}
                       isWidget={isWidget}
@@ -496,7 +535,7 @@ function App() {
                 <div className="w-full max-w-md space-y-6">
                   <div
                     className={`rounded-2xl p-6 ${cardShadow} transition-colors duration-300 ease-out-smooth ${timerSurfaceClass}`}
-                    style={settings.colorTimer && accentColor === 'green' ? { backgroundColor: '#266a5b', color: '#ffffff' } : undefined}
+                    style={settings.colorTimer && accentColor === 'green' ? { backgroundColor: '#0f766e', color: '#ffffff' } : undefined}
                   >
                     <Timer
                       time={time}
@@ -505,12 +544,15 @@ function App() {
                       onStart={startTimer}
                       onStop={stopTimer}
                       onReset={resetTimer}
+                      onSkipBreak={skipBreak}
                       activeTask={activeTask}
                       estimatedBreakTime={estimatedBreakTime}
-                        theme={theme}
-                        accentColor={accentColor}
-                        isWidget={isWidget}
-                        settings={settings}
+                      currentSession={currentSession}
+                      totalSessions={totalSessions}
+                      theme={theme}
+                      accentColor={accentColor}
+                      isWidget={isWidget}
+                      settings={settings}
                     />
                   </div>
                   {(settings.showMusicPlayer ?? true) && showMusicPlayer && (
@@ -529,7 +571,7 @@ function App() {
                 {/* Timer Block */}
                 <div
                   className={`rounded-2xl p-6 ${cardShadow} transition-colors duration-300 ease-out-smooth ${timerSurfaceClass}`}
-                  style={settings.colorTimer && accentColor === 'green' ? { backgroundColor: '#266a5b', color: '#ffffff' } : undefined}
+                  style={settings.colorTimer && accentColor === 'green' ? { backgroundColor: '#0f766e', color: '#ffffff' } : undefined}
                 >
                   <Timer
                     time={time}
@@ -538,8 +580,11 @@ function App() {
                     onStart={startTimer}
                     onStop={stopTimer}
                     onReset={resetTimer}
+                    onSkipBreak={skipBreak}
                     activeTask={activeTask}
                     estimatedBreakTime={estimatedBreakTime}
+                    currentSession={currentSession}
+                    totalSessions={totalSessions}
                     theme={theme}
                     accentColor={accentColor}
                     isWidget={isWidget}
@@ -572,7 +617,7 @@ function App() {
           <div className="flex justify-center">
             <div
               className={`rounded-2xl p-6 ${cardShadow} transition-colors duration-300 ease-out-smooth ${timerSurfaceClass} w-full max-w-xs`}
-              style={settings.colorTimer && accentColor === 'green' ? { backgroundColor: '#266a5b', color: '#ffffff' } : undefined}
+              style={settings.colorTimer && accentColor === 'green' ? { backgroundColor: '#0f766e', color: '#ffffff' } : undefined}
             >
               <Timer
                 time={time}
@@ -581,8 +626,11 @@ function App() {
                 onStart={startTimer}
                 onStop={stopTimer}
                 onReset={resetTimer}
+                onSkipBreak={skipBreak}
                 activeTask={activeTask}
                 estimatedBreakTime={estimatedBreakTime}
+                currentSession={currentSession}
+                totalSessions={totalSessions}
                 theme={theme}
                 accentColor={accentColor}
                 isWidget={isWidget}

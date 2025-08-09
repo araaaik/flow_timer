@@ -1,19 +1,24 @@
 import React from 'react';
-import { Play, Pause, Volume2, VolumeX, ChevronUp, ChevronDown, Edit3, Check } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, ChevronUp, ChevronDown } from 'lucide-react';
 import { useMusicPlayer } from '../hooks/useMusicPlayer';
+import { useColorSystem } from '../hooks/useColorSystem';
 
 interface MusicPlayerProps {
   theme: 'light' | 'dark';
   layout?: 'compact' | 'full';
 }
 
-// Helper to get thumbnail for a given YouTube watch URL (hqdefault)
-const getThumb = (watchUrl: string) => {
+// Helper to get thumbnail for a given stream (custom or YouTube)
+const getThumb = (stream: { name: string; url: string; customThumbnail?: string }) => {
+  if (stream.customThumbnail) {
+    return stream.customThumbnail;
+  }
+  
   try {
-    const id = new URL(watchUrl).searchParams.get('v');
+    const id = new URL(stream.url).searchParams.get('v');
     return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
   } catch {
-    const id = watchUrl.split('v=')[1] || '';
+    const id = stream.url.split('v=')[1] || '';
     return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
   }
 };
@@ -34,8 +39,8 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
     isStreamHidden
   } = useMusicPlayer();
   
+  const colorSystem = useColorSystem();
   const [isExpanded, setIsExpanded] = React.useState(false);
-  const [isEditMode, setIsEditMode] = React.useState(false);
 
   // Read accentColor from settings to keep component independent of props drilling
   const accentColor = (() => {
@@ -51,13 +56,9 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
 
   // Resolve accent color to HEX for consistent styling (slider, thumb, etc.)
   const accentHex = (() => {
-    const hex: Record<string, string> = {
-      blue: '#3b82f6', purple: '#8b5cf6', green: '#266a5b', red: '#ef4444',
-      orange: '#f97316', pink: '#ec4899', indigo: '#6366f1', yellow: '#eab308',
-      teal: '#14b8a6', cyan: '#06b6d4', lime: '#84cc16', emerald: '#10b981',
-      violet: '#8b5cf6', rose: '#f43f5e', slate: '#64748b', black: '#111827'
-    };
-    return hex[accentColor] ?? '#3b82f6';
+    const allColors = colorSystem.getAllAccentColors();
+    const color = allColors.find(c => c.value === accentColor);
+    return color?.color || '#3b82f6'; // fallback to blue
   })();
 
 
@@ -86,10 +87,35 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
       : (theme === 'dark' ? 'bg-gray-800' : 'bg-white');
 
   return (
-    <div
-      className={`rounded-lg transition-all transition-size overflow-hidden ${wrapperBg} ${layout === 'compact' ? (isExpanded ? '' : 'h-10') : ''}`}
-      style={{ ['--slider-accent' as any]: accentHex, ['--accent-hex' as any]: accentHex }}
-    >
+    <>
+      <style>{`
+        .music-accent-indicator {
+          background-color: var(--accent-color);
+        }
+        
+        .music-accent-border {
+          border-color: var(--accent-color) !important;
+        }
+        
+        .music-accent-overlay {
+          background-color: var(--accent-color);
+          opacity: 0.2;
+        }
+        
+        .music-accent-badge {
+          background-color: var(--accent-color);
+          color: white;
+        }
+      `}</style>
+      <div
+        className={`rounded-lg transition-all transition-size overflow-hidden ${wrapperBg} ${layout === 'compact' ? (isExpanded ? '' : 'h-10') : ''}`}
+        style={{ 
+          '--slider-accent': accentHex, 
+          '--accent-hex': accentHex,
+          '--accent-color': accentHex,
+          '--accent-color-hover': accentHex + 'dd',
+        } as React.CSSProperties}
+      >
       {/* Compact Header */}
       <div className={`flex items-center justify-between ${layout === 'compact' ? 'px-3 py-2' : 'px-6 py-3'} ${layout === 'compact' ? 'h-10' : ''}`}>
         {/* Left group: swap indicator with Play in compact layout */}
@@ -97,19 +123,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
           {layout === 'compact' ? (
             <>
               <div
-                className={`w-2 h-2 rounded-full ${isPlaying ? 'animate-pulse' : ''}`}
-                style={{
-                  backgroundColor: (() => {
-                    if (!isPlaying) return theme === 'dark' ? '#9ca3af' : '#9ca3af'; // gray-400
-                    const hex: Record<string, string> = {
-                      blue: '#3b82f6', purple: '#8b5cf6', green: '#266a5b', red: '#ef4444',
-                      orange: '#f97316', pink: '#ec4899', indigo: '#6366f1', yellow: '#eab308',
-                      teal: '#14b8a6', cyan: '#06b6d4', lime: '#84cc16', emerald: '#10b981',
-                      violet: '#8b5cf6', rose: '#f43f5e', slate: '#64748b', black: '#111827'
-                    };
-                    return hex[accentColor] ?? '#3b82f6';
-                  })()
-                }}
+                className={`w-2 h-2 rounded-full ${isPlaying ? 'animate-pulse music-accent-indicator' : (theme === 'dark' ? 'bg-gray-400' : 'bg-gray-400')}`}
               />
               <button
                 onClick={togglePlayPause}
@@ -135,14 +149,8 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
                 style={{
                   backgroundColor: (() => {
                     if (!isPlaying) return theme === 'dark' ? '#9ca3af' : '#9ca3af';
-                    const hex: Record<string, string> = {
-                      blue: '#3b82f6', purple: '#8b5cf6', green: '#266a5b', red: '#ef4444',
-                      orange: '#f97316', pink: '#ec4899', indigo: '#6366f1', yellow: '#eab308',
-                      teal: '#14b8a6', cyan: '#06b6d4', lime: '#84cc16', emerald: '#10b981',
-                      violet: '#8b5cf6', rose: '#f43f5e', slate: '#64748b', black: '#111827'
-                    };
-                    return hex[accentColor] ?? '#3b82f6';
-                  })()
+                    return accentHex;
+                  })(),
                 }}
               />
               <button
@@ -168,10 +176,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
         {/* Right group: controls (no duplicate indicator in compact layout) */}
         <div className={`flex items-center ${layout === 'compact' ? 'space-x-2' : 'space-x-2'}`}>
           <button
-            onClick={() => {
-              setIsExpanded(!isExpanded);
-              if (isExpanded) setIsEditMode(false); // Exit edit mode when collapsing
-            }}
+            onClick={() => setIsExpanded(!isExpanded)}
             className={`p-2 rounded-lg transition-colors ${
               theme === 'dark'
                 ? 'hover:bg-gray-700 text-gray-300'
@@ -196,63 +201,36 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
                 <label className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                   STATION
                 </label>
-                <button
-                  onClick={() => setIsEditMode(!isEditMode)}
-                  className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
-                    isEditMode
-                      ? `text-white`
-                      : (theme === 'dark'
-                          ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300'
-                          : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700')
-                  }`}
-                  style={isEditMode ? { backgroundColor: accentHex } : undefined}
-                  title={isEditMode ? 'Done editing' : 'Edit stations'}
-                >
-                  {isEditMode ? <Check size={12} /> : <Edit3 size={12} />}
-                  <span>{isEditMode ? 'Done' : 'Edit'}</span>
-                </button>
               </div>
               {layout === 'compact' ? (
                 <div className="grid grid-cols-2 gap-2">
-                  {(isEditMode ? streams : visibleStreams).map((stream, index) => {
-                    // In edit mode, use original index; in normal mode, find original index
-                    const originalIndex = isEditMode ? index : streams.findIndex(s => s === stream);
+                  {visibleStreams.map((stream, index) => {
+                    const originalIndex = streams.findIndex(s => s === stream);
                     const active = currentStream === originalIndex;
-                    const hidden = isStreamHidden(originalIndex);
-                    const thumb = getThumb(stream.url);
+                    const thumb = getThumb(stream);
                     
                     return (
                       <button
                         key={originalIndex}
-                        onClick={() => isEditMode ? toggleStreamVisibility(originalIndex) : setCurrentStream(originalIndex)}
-                        className={`relative group overflow-hidden rounded-lg aspect-video transition border ${
-                          isEditMode
-                            ? (hidden
-                                ? (theme === 'dark' ? 'border-gray-600' : 'border-gray-400')
-                                : 'border-2')
-                            : (active
-                                ? 'border-2'
-                                : (theme === 'dark'
-                                    ? 'border-gray-700 hover:border-gray-600'
-                                    : 'border-gray-300 hover:border-gray-400'))
+                        onClick={() => setCurrentStream(originalIndex)}
+                        className={`relative overflow-hidden rounded-lg aspect-video transition border ${
+                          active
+                            ? 'border-2 music-accent-border'
+                            : (theme === 'dark'
+                                ? 'border-gray-700 hover:border-gray-600'
+                                : 'border-gray-300 hover:border-gray-400')
                         }`}
-                        title={isEditMode ? (hidden ? 'Show station' : 'Hide station') : stream.name}
-                        style={
-                          isEditMode
-                            ? (hidden ? undefined : { borderColor: accentHex })
-                            : (active ? { borderColor: accentHex } : undefined)
-                        }
+                        title={stream.name}
+
                       >
                         <img
                           src={thumb}
                           alt={stream.name}
-                          className={`w-full h-full object-cover transition-all ${
-                            isEditMode && hidden ? 'opacity-50 grayscale' : 'opacity-100'
-                          }`}
+                          className="w-full h-full object-cover"
                           loading="lazy"
                         />
-                        {!isEditMode && active && (
-                          <div className="absolute inset-0 opacity-20" style={{ backgroundColor: accentHex }} />
+                        {active && (
+                          <div className="absolute inset-0 music-accent-overlay" />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-2">
@@ -260,9 +238,9 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
                             {stream.name}
                           </div>
                         </div>
-                        {!isEditMode && active && (
+                        {active && (
                           <div className="absolute top-2 right-2">
-                            <div className="px-1.5 py-0.5 text-[10px] rounded text-white" style={{ backgroundColor: accentHex }}>Active</div>
+                            <div className="px-1.5 py-0.5 text-[10px] rounded music-accent-badge">Active</div>
                           </div>
                         )}
                       </button>
@@ -274,45 +252,33 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
                   className="grid gap-2"
                   style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(88px, 1fr))' }}
                 >
-                  {(isEditMode ? streams : visibleStreams).map((stream, index) => {
-                    // In edit mode, use original index; in normal mode, find original index
-                    const originalIndex = isEditMode ? index : streams.findIndex(s => s === stream);
+                  {visibleStreams.map((stream, index) => {
+                    const originalIndex = streams.findIndex(s => s === stream);
                     const active = currentStream === originalIndex;
-                    const hidden = isStreamHidden(originalIndex);
-                    const thumb = getThumb(stream.url);
+                    const thumb = getThumb(stream);
                     
                     return (
                       <button
                         key={originalIndex}
-                        onClick={() => isEditMode ? toggleStreamVisibility(originalIndex) : setCurrentStream(originalIndex)}
-                        className={`relative group overflow-hidden rounded-lg aspect-video transition border ${
-                          isEditMode
-                            ? (hidden
-                                ? (theme === 'dark' ? 'border-gray-600' : 'border-gray-400')
-                                : 'border-2')
-                            : (active
-                                ? 'border-2'
-                                : (theme === 'dark'
-                                    ? 'border-gray-700 hover:border-gray-600'
-                                    : 'border-gray-300 hover:border-gray-400'))
+                        onClick={() => setCurrentStream(originalIndex)}
+                        className={`relative overflow-hidden rounded-lg aspect-video transition border ${
+                          active
+                            ? 'border-2 music-accent-border'
+                            : (theme === 'dark'
+                                ? 'border-gray-700 hover:border-gray-600'
+                                : 'border-gray-300 hover:border-gray-400')
                         }`}
-                        title={isEditMode ? (hidden ? 'Show station' : 'Hide station') : stream.name}
-                        style={
-                          isEditMode
-                            ? (hidden ? undefined : { borderColor: accentHex })
-                            : (active ? { borderColor: accentHex } : undefined)
-                        }
+                        title={stream.name}
+
                       >
                         <img
                           src={thumb}
                           alt={stream.name}
-                          className={`w-full h-full object-cover transition-all ${
-                            isEditMode && hidden ? 'opacity-50 grayscale' : 'opacity-100'
-                          }`}
+                          className="w-full h-full object-cover"
                           loading="lazy"
                         />
-                        {!isEditMode && active && (
-                          <div className="absolute inset-0 opacity-20" style={{ backgroundColor: accentHex }} />
+                        {active && (
+                          <div className="absolute inset-0 music-accent-overlay" />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-2">
@@ -320,9 +286,9 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
                             {stream.name}
                           </div>
                         </div>
-                        {!isEditMode && active && (
+                        {active && (
                           <div className="absolute top-2 right-2">
-                            <div className="px-1.5 py-0.5 text-[10px] rounded text-white" style={{ backgroundColor: accentHex }}>Active</div>
+                            <div className="px-1.5 py-0.5 text-[10px] rounded music-accent-badge">Active</div>
                           </div>
                         )}
                       </button>
@@ -387,6 +353,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
         }
       `}</style>
     </div>
+    </>
   );
 }
 

@@ -8,14 +8,38 @@ interface MusicState {
   hiddenStreams: number[]; // Array of hidden stream indices
 }
 
-const streams = [
+interface MusicStream {
+  name: string;
+  url: string;
+  customThumbnail?: string; // Optional custom thumbnail URL
+}
+
+const defaultStreams: MusicStream[] = [
   { name: 'Lofi Hip Hop Radio', url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk' },
   { name: 'Chillhop Radio', url: 'https://www.youtube.com/watch?v=SXySxLgCV-8' },
-  { name: 'Jazz Radio', url: 'https://www.youtube.com/watch?v=HuFYqnbVbzY' },
-  { name: 'Study Music', url: 'https://www.youtube.com/watch?v=TtkFsfOP9QI' },
-  { name: 'Ambient Focus', url: 'https://www.youtube.com/watch?v=28KRPhVzCus' },
-  { name: 'Deep Focus', url: 'https://www.youtube.com/watch?v=4xDzrJKXOOY' }
+  { name: 'Chill Beats', url: 'https://www.youtube.com/watch?v=xORCbIptqcc' },
+  { name: 'Study Vibes', url: 'https://www.youtube.com/watch?v=1oDrJba2PSs' },
+  { name: 'Jazz Cafe', url: 'https://www.youtube.com/watch?v=HuFYqnbVbzY' },
+  { name: 'Ambient Focus', url: 'https://www.youtube.com/watch?v=P6Segk8cr-c' },
+  { name: 'Deep Focus', url: 'https://www.youtube.com/watch?v=TtkFsfOP9QI' },
+  { name: 'Cozy Vibes', url: 'https://www.youtube.com/watch?v=28KRPhVzCus' },
+  { name: 'Sad Lofi', url: 'https://www.youtube.com/watch?v=4xDzrJKXOOY' },
+  { name: 'Rain Sounds', url: 'https://www.youtube.com/watch?v=-OekvEFm1lo' }
 ];
+
+// Load streams from localStorage or use defaults
+let streams = (() => {
+  try {
+    const saved = localStorage.getItem('flow-music-streams');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : defaultStreams;
+    }
+  } catch (error) {
+    console.error('Failed to load music streams:', error);
+  }
+  return defaultStreams;
+})();
 
 class MusicPlayerManager {
   private static instance: MusicPlayerManager;
@@ -73,6 +97,14 @@ class MusicPlayerManager {
       localStorage.setItem('flow-music-state', JSON.stringify(this.state));
     } catch (error) {
       console.error('Failed to save music state:', error);
+    }
+  }
+
+  private saveStreams() {
+    try {
+      localStorage.setItem('flow-music-streams', JSON.stringify(streams));
+    } catch (error) {
+      console.error('Failed to save music streams:', error);
     }
   }
 
@@ -207,6 +239,51 @@ class MusicPlayerManager {
   public isStreamHidden(index: number): boolean {
     return this.state.hiddenStreams.includes(index);
   }
+
+  public addStream(name: string, url: string, customThumbnail?: string) {
+    streams.push({ name, url, customThumbnail });
+    this.saveStreams();
+    this.notifyListeners();
+  }
+
+  public updateStream(index: number, name: string, url: string, customThumbnail?: string) {
+    if (index >= 0 && index < streams.length) {
+      streams[index] = { name, url, customThumbnail };
+      this.saveStreams();
+      this.updateIframe();
+      this.notifyListeners();
+    }
+  }
+
+  public updateStreamThumbnail(index: number, customThumbnail?: string) {
+    if (index >= 0 && index < streams.length) {
+      streams[index].customThumbnail = customThumbnail;
+      this.saveStreams();
+      this.notifyListeners();
+    }
+  }
+
+  public deleteStream(index: number) {
+    if (index >= 0 && index < streams.length && streams.length > 1) {
+      streams.splice(index, 1);
+      
+      // Update hidden streams indices
+      this.state.hiddenStreams = this.state.hiddenStreams
+        .map(hiddenIndex => hiddenIndex > index ? hiddenIndex - 1 : hiddenIndex)
+        .filter(hiddenIndex => hiddenIndex < streams.length);
+      
+      // Update current stream if needed
+      if (this.state.currentStream >= streams.length) {
+        this.state.currentStream = streams.length - 1;
+      } else if (this.state.currentStream > index) {
+        this.state.currentStream = this.state.currentStream - 1;
+      }
+      
+      this.saveStreams();
+      this.updateIframe();
+      this.notifyListeners();
+    }
+  }
 }
 
 export function useMusicPlayer() {
@@ -228,6 +305,10 @@ export function useMusicPlayer() {
     setMuted: managerRef.current.setMuted.bind(managerRef.current),
     setIframeRef: managerRef.current.setIframeRef.bind(managerRef.current),
     toggleStreamVisibility: managerRef.current.toggleStreamVisibility.bind(managerRef.current),
-    isStreamHidden: managerRef.current.isStreamHidden.bind(managerRef.current)
+    isStreamHidden: managerRef.current.isStreamHidden.bind(managerRef.current),
+    addStream: managerRef.current.addStream.bind(managerRef.current),
+    updateStream: managerRef.current.updateStream.bind(managerRef.current),
+    updateStreamThumbnail: managerRef.current.updateStreamThumbnail.bind(managerRef.current),
+    deleteStream: managerRef.current.deleteStream.bind(managerRef.current)
   };
 }

@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Plus, X, Clock, Target, BarChart3 } from 'lucide-react';
 import type { Task, Session } from '../App';
+import { getAccentClasses } from '../utils/colorSystem';
+import { useColorSystem } from '../hooks/useColorSystem';
 
 /**
  * TaskManager.tsx
@@ -54,6 +56,16 @@ function TaskManager({
   layout = 'full',
   onShowHistory
 }: TaskManagerProps & { isRunning?: boolean }) {
+  const colorSystem = useColorSystem();
+  const accentClasses = getAccentClasses(accentColor, colorSystem.getAllAccentColors());
+  
+  // Get hex color for current accent
+  const getAccentHex = () => {
+    const allColors = colorSystem.getAllAccentColors();
+    const color = allColors.find(c => c.value === accentColor);
+    return color?.color || '#3b82f6'; // fallback to blue
+  };
+  
   const [newTaskName, setNewTaskName] = useState('');
   const [newTaskTime, setNewTaskTime] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
@@ -192,7 +204,29 @@ function TaskManager({
   };
 
   return (
-    <div className="min-w-0" onClick={handleContainerClick}>
+    <>
+      <style>{`
+        .task-accent-ring {
+          box-shadow: 0 0 0 2px var(--accent-color);
+        }
+        
+        .task-accent-bg {
+          background-color: var(--accent-color) !important;
+          color: white !important;
+        }
+        
+        .task-accent-bg:hover {
+          background-color: var(--accent-color-hover) !important;
+        }
+      `}</style>
+      <div 
+        className="min-w-0" 
+        onClick={handleContainerClick}
+        style={{
+          '--accent-color': getAccentHex(),
+          '--accent-color-hover': getAccentHex() + 'dd',
+        } as React.CSSProperties}
+      >
       <div className="flex items-center justify-between mb-4">
         <h2 className={`text-lg font-semibold transition-colors duration-240 ease-out-smooth ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
           Tasks
@@ -276,48 +310,11 @@ function TaskManager({
                   }}
                   className={`rounded-lg animate-fade-in-up ${((TaskManager as any).isRunningGlobal ? 'cursor-not-allowed opacity-70' : 'cursor-pointer')} transition-all duration-240 ease-out-smooth ${
                    activeTask?.id === task.id
-                     ? (() => {
-                         const map: Record<string, string> = {
-                           blue: 'ring-2 ring-offset-0 border-0 ring-blue-500',
-                           red: 'ring-2 ring-offset-0 border-0 ring-red-500',
-                           green: 'ring-2 ring-offset-0 border-0 ring-green-500',
-                           purple: 'ring-2 ring-offset-0 border-0 ring-purple-500',
-                           orange: 'ring-2 ring-offset-0 border-0 ring-orange-500',
-                           pink: 'ring-2 ring-offset-0 border-0 ring-pink-500',
-                           indigo: 'ring-2 ring-offset-0 border-0 ring-indigo-500',
-                           yellow: 'ring-2 ring-offset-0 border-0 ring-yellow-500',
-                           teal: 'ring-2 ring-offset-0 border-0 ring-teal-500',
-                           cyan: 'ring-2 ring-offset-0 border-0 ring-cyan-500',
-                           lime: 'ring-2 ring-offset-0 border-0 ring-lime-500',
-                           emerald: 'ring-2 ring-offset-0 border-0 ring-emerald-500',
-                           violet: 'ring-2 ring-offset-0 border-0 ring-violet-500',
-                           rose: 'ring-2 ring-offset-0 border-0 ring-rose-500',
-                           slate: 'ring-2 ring-offset-0 border-0 ring-slate-500',
-                           black: 'ring-2 ring-offset-0 border-0 ring-black',
-                         };
-                         return map[accentColor] ?? 'ring-2 ring-offset-0 border-0 ring-blue-500';
-                       })()
+                     ? 'task-accent-ring'
                      : theme === 'dark'
                        ? 'border border-gray-600 bg-gray-700/50 hover:bg-gray-700'
                        : 'border border-gray-200 bg-gray-50 hover:bg-gray-100'
                 }`}
-                style={
-                  activeTask?.id === task.id
-                    ? (() => {
-                        // Custom active ring overrides:
-                        // - green: keep existing accent boxShadow ring
-                        // - black accent in dark theme: subtle gray ring for better integration
-                        if (accentColor === 'green') {
-                          return { boxShadow: '0 0 0 2px #266a5b' };
-                        }
-                        if (accentColor === 'black' && theme === 'dark') {
-                          // Using Tailwind palette approx: gray-300 over dark surfaces
-                          return { boxShadow: '0 0 0 2px #d1d5db' };
-                        }
-                        return undefined;
-                      })()
-                    : undefined
-                }
               >
                   {/* Two-row layout per spec when goal exists; otherwise keep current row */}
                   <div className="px-3 py-2 min-h-10 transition-colors duration-240 ease-out-smooth">
@@ -337,31 +334,7 @@ function TaskManager({
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {showBadge && (
                           <div
-                            className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap inline-flex items-center transition-colors duration-240 ease-out-smooth ${
-                              (() => {
-                                const map: Record<string, string> = {
-                                  blue: 'bg-blue-500 dark:bg-blue-600 text-white',
-                                  red: 'bg-red-500 dark:bg-red-600 text-white',
-                                  green: 'bg-green-500 dark:bg-green-600 text-white',
-                                  purple: 'bg-purple-500 dark:bg-purple-600 text-white',
-                                  orange: 'bg-orange-500 dark:bg-orange-600 text-white',
-                                  pink: 'bg-pink-500 dark:bg-pink-600 text-white',
-                                  indigo: 'bg-indigo-500 dark:bg-indigo-600 text-white',
-                                  yellow: 'bg-yellow-500 dark:bg-yellow-600 text-white',
-                                  teal: 'bg-teal-500 dark:bg-teal-600 text-white',
-                                  cyan: 'bg-cyan-500 dark:bg-cyan-600 text-white',
-                                  lime: 'bg-lime-500 dark:bg-lime-600 text-white',
-                                  emerald: 'bg-emerald-500 dark:bg-emerald-600 text-white',
-                                  violet: 'bg-violet-500 dark:bg-violet-600 text-white',
-                                  rose: 'bg-rose-500 dark:bg-rose-600 text-white',
-                                  slate: 'bg-slate-500 dark:bg-slate-600 text-white',
-                                  black: 'bg-black dark:bg-black text-white',
-                                };
-                                return map[accentColor] ?? 'bg-blue-500 dark:bg-blue-600 text-white';
-                              })()
-                              }
-                            }`}
-                            style={accentColor === 'green' ? { backgroundColor: '#266a5b', color: '#ffffff' } : undefined}
+                            className="px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap inline-flex items-center transition-colors duration-240 ease-out-smooth task-accent-bg"
                             title="Today's total time for this task"
                           >
                             {/* Force re-render with liveTick or storage changes so numbers update each second */}
@@ -390,29 +363,9 @@ function TaskManager({
                         <div className={`w-full h-1.5 rounded-full transition-colors duration-240 ease-out-smooth ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'}`}>
                           <div
                             className={`h-1.5 rounded-full transition-[width,background-color] duration-240 ease-out-smooth will-change-[width] ${
-                              (() => {
-                                const map: Record<string, string> = {
-                                  blue: 'bg-blue-500',
-                                  red: 'bg-red-500',
-                                  green: 'bg-green-500',
-                                  purple: 'bg-purple-500',
-                                  orange: 'bg-orange-500',
-                                  pink: 'bg-pink-500',
-                                  indigo: 'bg-indigo-500',
-                                  yellow: 'bg-yellow-500',
-                                  teal: 'bg-teal-500',
-                                  cyan: 'bg-cyan-500',
-                                  lime: 'bg-lime-500',
-                                  emerald: 'bg-emerald-500',
-                                  violet: 'bg-violet-500',
-                                  rose: 'bg-rose-500',
-                                  slate: 'bg-slate-500',
-                                  black: 'bg-black',
-                                };
-                                return map[accentColor] ?? 'bg-blue-500';
-                              })()
+                              accentClasses.bg
                             }`}
-                            style={{ width: `${pctToday}%`, ...(accentColor === 'green' ? { backgroundColor: '#266a5b' } : {}) }}
+                            style={{ width: `${pctToday}%`, backgroundColor: getAccentHex() }}
                           />
                         </div>
                         <div className="mt-1 flex items-center justify-between text-[10px] leading-3">
@@ -500,30 +453,9 @@ function TaskManager({
                       disabled={!newTaskName.trim()}
                       className={`px-4 py-1.5 text-sm rounded-lg font-medium transition-all duration-240 ease-out-smooth shadow-sm hover:shadow-md ${
                         newTaskName.trim()
-                          ? (() => {
-                              const map: Record<string, string> = {
-                                blue: 'text-white bg-blue-500 hover:bg-blue-600',
-                                red: 'text-white bg-red-500 hover:bg-red-600',
-                                green: 'text-white bg-green-500 hover:bg-green-600',
-                                purple: 'text-white bg-purple-500 hover:bg-purple-600',
-                                orange: 'text-white bg-orange-500 hover:bg-orange-600',
-                                pink: 'text-white bg-pink-500 hover:bg-pink-600',
-                                indigo: 'text-white bg-indigo-500 hover:bg-indigo-600',
-                                yellow: 'text-white bg-yellow-500 hover:bg-yellow-600',
-                                teal: 'text-white bg-teal-500 hover:bg-teal-600',
-                                cyan: 'text-white bg-cyan-500 hover:bg-cyan-600',
-                                lime: 'text-white bg-lime-500 hover:bg-lime-600',
-                                emerald: 'text-white bg-emerald-500 hover:bg-emerald-600',
-                                violet: 'text-white bg-violet-500 hover:bg-violet-600',
-                                rose: 'text-white bg-rose-500 hover:bg-rose-600',
-                                slate: 'text-white bg-slate-500 hover:bg-slate-600',
-                                black: 'text-white bg-black hover:bg-neutral-900',
-                              };
-                              return map[accentColor] ?? 'text-white bg-blue-500 hover:bg-blue-600';
-                            })()
+                          ? 'task-accent-bg'
                           : `${theme === 'dark' ? 'bg-gray-600 text-gray-400' : 'bg-gray-200 text-gray-500'} cursor-not-allowed`
                       }`}
-                      style={accentColor === 'green' && newTaskName.trim() ? { backgroundColor: '#266a5b' } : undefined}
                     >
                       Add
                     </button>
@@ -599,30 +531,9 @@ function TaskManager({
                         disabled={!newTaskName.trim()}
                         className={`px-3 py-1 text-xs rounded-lg font-medium transition-all duration-240 ease-out-smooth shadow-sm hover:shadow-md ${
                           newTaskName.trim()
-                            ? (() => {
-                                const map: Record<string, string> = {
-                                  blue: 'text-white bg-blue-500 hover:bg-blue-600',
-                                  red: 'text-white bg-red-500 hover:bg-red-600',
-                                  green: 'text-white bg-green-500 hover:bg-green-600',
-                                  purple: 'text-white bg-purple-500 hover:bg-purple-600',
-                                  orange: 'text-white bg-orange-500 hover:bg-orange-600',
-                                  pink: 'text-white bg-pink-500 hover:bg-pink-600',
-                                  indigo: 'text-white bg-indigo-500 hover:bg-indigo-600',
-                                  yellow: 'text-white bg-yellow-500 hover:bg-yellow-600',
-                                  teal: 'text-white bg-teal-500 hover:bg-teal-600',
-                                  cyan: 'text-white bg-cyan-500 hover:bg-cyan-600',
-                                  lime: 'text-white bg-lime-500 hover:bg-lime-600',
-                                  emerald: 'text-white bg-emerald-500 hover:bg-emerald-600',
-                                  violet: 'text-white bg-violet-500 hover:bg-violet-600',
-                                  rose: 'text-white bg-rose-500 hover:bg-rose-600',
-                                  slate: 'text-white bg-slate-500 hover:bg-slate-600',
-                                  black: 'text-white bg-black hover:bg-neutral-900',
-                                };
-                                return map[accentColor] ?? 'text-white bg-blue-500 hover:bg-blue-600';
-                              })()
+                            ? 'task-accent-bg'
                             : `${theme === 'dark' ? 'bg-gray-600 text-gray-400' : 'bg-gray-200 text-gray-500'} cursor-not-allowed`
                         }`}
-                        style={accentColor === 'green' && newTaskName.trim() ? { backgroundColor: '#266a5b' } : undefined}
                       >
                         <Plus size={14} />
                       </button>
@@ -695,30 +606,9 @@ function TaskManager({
                       disabled={!newTaskName.trim()}
                       className={`px-4 py-1.5 text-sm rounded-lg font-medium transition-all duration-240 ease-out-smooth shadow-sm hover:shadow-md flex items-center justify-center ${
                         newTaskName.trim()
-                          ? (() => {
-                              const map: Record<string, string> = {
-                                blue: 'text-white bg-blue-500 hover:bg-blue-600',
-                                red: 'text-white bg-red-500 hover:bg-red-600',
-                                green: 'text-white bg-green-500 hover:bg-green-600',
-                                purple: 'text-white bg-purple-500 hover:bg-purple-600',
-                                orange: 'text-white bg-orange-500 hover:bg-orange-600',
-                                pink: 'text-white bg-pink-500 hover:bg-pink-600',
-                                indigo: 'text-white bg-indigo-500 hover:bg-indigo-600',
-                                yellow: 'text-white bg-yellow-500 hover:bg-yellow-600',
-                                teal: 'text-white bg-teal-500 hover:bg-teal-600',
-                                cyan: 'text-white bg-cyan-500 hover:bg-cyan-600',
-                                lime: 'text-white bg-lime-500 hover:bg-lime-600',
-                                emerald: 'text-white bg-emerald-500 hover:bg-emerald-600',
-                                violet: 'text-white bg-violet-500 hover:bg-violet-600',
-                                rose: 'text-white bg-rose-500 hover:bg-rose-600',
-                                slate: 'text-white bg-slate-500 hover:bg-slate-600',
-                                black: 'text-white bg-black hover:bg-neutral-900',
-                              };
-                              return map[accentColor] ?? 'text-white bg-blue-500 hover:bg-blue-600';
-                            })()
+                          ? 'task-accent-bg'
                           : `${theme === 'dark' ? 'bg-gray-600 text-gray-400' : 'bg-gray-200 text-gray-500'} cursor-not-allowed`
                       }`}
-                      style={accentColor === 'green' && newTaskName.trim() ? { backgroundColor: '#266a5b' } : undefined}
                     >
                       <Plus size={16} />
                     </button>
@@ -758,6 +648,7 @@ function TaskManager({
         )}
       </div>
     </div>
+    </>
   );
 }
 

@@ -3,10 +3,14 @@ import type { Task, Session, Settings } from '../App';
 
 /**
  * useTimer()
- * A drift-free work/break timer hook that:
+ * A drift-free work/break timer hook that supports two modes:
+ * 1. Flow mode: Flexible work time with optional proportional/fixed breaks
+ * 2. Pomodoro mode: Fixed work/break cycles with session counting
+ * 
+ * Features:
  * - Tracks work elapsed time using wall-clock (Date.now) to avoid setInterval drift
  * - Persists state to localStorage to survive reloads and resumes correctly
- * - Starts a proportional break on stop (break = floor(workedSeconds / 5))
+ * - Supports both countdown (Pomodoro) and count-up (Flow) timing
  * - Emits audio and optional visual notifications at break end
  *
  * Inputs:
@@ -14,7 +18,7 @@ import type { Task, Session, Settings } from '../App';
  * - tasks: current task list (used to update timeSpent on stop)
  * - sessions: historical sessions (not mutated here directly, only appended)
  * - setSessions: setter to append newly finished work sessions
- * - settings: user preferences (audio/visual notifications)
+ * - settings: user preferences (audio/visual notifications, timer mode, etc.)
  *
  * Returns:
  * - time: number
@@ -24,6 +28,9 @@ import type { Task, Session, Settings } from '../App';
  * - stopTimer(): void
  * - resetTimer(): void
  * - estimatedBreakTime: number (seconds, computed live while working)
+ * - currentSession: number (for Pomodoro mode)
+ * - totalSessions: number (for Pomodoro mode)
+ * - skipBreak(): void (skip current break)
  */
 interface TimerState {
   /** seconds for display (work elapsed or break remaining) */
@@ -35,6 +42,14 @@ interface TimerState {
   sessionId: string;
   /** ms timestamp when break should end */
   targetTime?: number;
+  /** Pomodoro mode: current session number (1-based) */
+  currentSession?: number;
+  /** Pomodoro mode: total sessions configured */
+  totalSessions?: number;
+  /** Pomodoro mode: work duration in seconds */
+  workDuration?: number;
+  /** Pomodoro mode: break duration in seconds */
+  breakDuration?: number;
 }
 
 export function useTimer(
@@ -56,6 +71,10 @@ export function useTimer(
         startTime: typeof parsed.startTime === 'number' ? parsed.startTime : 0,
         sessionId: typeof parsed.sessionId === 'string' ? parsed.sessionId : '',
         targetTime: typeof parsed.targetTime === 'number' ? parsed.targetTime : undefined,
+        currentSession: typeof parsed.currentSession === 'number' ? parsed.currentSession : undefined,
+        totalSessions: typeof parsed.totalSessions === 'number' ? parsed.totalSessions : undefined,
+        workDuration: typeof parsed.workDuration === 'number' ? parsed.workDuration : undefined,
+        breakDuration: typeof parsed.breakDuration === 'number' ? parsed.breakDuration : undefined,
       };
     }
     return {
@@ -65,6 +84,10 @@ export function useTimer(
       startTime: 0,
       sessionId: '',
       targetTime: undefined,
+      currentSession: undefined,
+      totalSessions: undefined,
+      workDuration: undefined,
+      breakDuration: undefined,
     };
   });
 
@@ -83,20 +106,41 @@ export function useTimer(
 
     const parsed = JSON.parse(saved) as TimerState;
     const now = Date.now();
+    const timerMode = settings.timerMode ?? 'flow';
 
     if (parsed.isRunning) {
       if (!parsed.isBreak) {
-        // Resume work: recompute elapsed since startTime
-        const elapsedSec = Math.max(0, Math.floor((now - parsed.startTime) / 1000));
-        setTimerState(prev => ({
-          ...prev,
-          isRunning: true,
-          isBreak: false,
-          startTime: parsed.startTime,
-          sessionId: parsed.sessionId,
-          time: elapsedSec,
-          targetTime: undefined,
-        }));
+        // Resume work session
+        if (timerMode === 'flow') {
+          // Flow mode: recompute elapsed since startTime
+          const elapsedSec = Math.max(0, Math.floor((now - parsed.startTime) / 1000));
+          setTimerState(prev => ({
+            ...prev,
+            isRunning: true,
+            isBreak: false,
+            startTime: parsed.startTime,
+            sessionId: parsed.sessionId,
+            time: elapsedSec,
+            targetTime: undefined,
+          }));
+        } else {
+          // Pomodoro mode: recompute remaining time
+          const elapsedSec = Math.floor((now - parsed.startTime) / 1000);
+          const remainingSec = Math.max(0, (parsed.workDuration || 0) - elapsedSec);
+          setTimerState(prev => ({
+            ...prev,
+            isRunning: true,
+            isBreak: false,
+            startTime: parsed.startTime,
+            sessionId: parsed.sessionId,
+            time: remainingSec,
+            targetTime: undefined,
+            currentSession: parsed.currentSession,
+            totalSessions: parsed.totalSessions,
+            workDuration: parsed.workDuration,
+            breakDuration: parsed.breakDuration,
+          }));
+        }
       } else {
         // Resume break: compute remaining from targetTime
         const remainingSec = parsed.targetTime ? Math.ceil((parsed.targetTime - now) / 1000) : 0;
@@ -109,6 +153,10 @@ export function useTimer(
             sessionId: parsed.sessionId,
             time: remainingSec,
             targetTime: parsed.targetTime,
+            currentSession: parsed.currentSession,
+            totalSessions: parsed.totalSessions,
+            workDuration: parsed.workDuration,
+            breakDuration: parsed.breakDuration,
           }));
         } else {
           // Break already finished while closed
@@ -118,6 +166,10 @@ export function useTimer(
             isBreak: false,
             time: 0,
             targetTime: undefined,
+            currentSession: undefined,
+            totalSessions: undefined,
+            workDuration: undefined,
+            breakDuration: undefined,
           }));
           // Fire notifications consistent with in-app finish behavior
           playNotification();
@@ -144,29 +196,118 @@ export function useTimer(
         if (!prev.isRunning) return prev;
 
         const now = Date.now();
+        const timerMode = settings.timerMode ?? 'flow';
 
         if (!prev.isBreak) {
-          // Work mode: time shows elapsed seconds since startTime
-          const elapsedSec = Math.floor((now - prev.startTime) / 1000);
-          if (elapsedSec !== prev.time) {
-            return { ...prev, time: elapsedSec };
+          // Work mode
+          if (timerMode === 'flow') {
+            // Flow mode: count up elapsed time
+            const elapsedSec = Math.floor((now - prev.startTime) / 1000);
+            if (elapsedSec !== prev.time) {
+              return { ...prev, time: elapsedSec };
+            }
+            return prev;
+          } else {
+            // Pomodoro mode: count down from work duration
+            const elapsedSec = Math.floor((now - prev.startTime) / 1000);
+            const remainingSec = Math.max(0, (prev.workDuration || 0) - elapsedSec);
+            
+            if (remainingSec !== prev.time) {
+              // If work session finished
+              if (remainingSec === 0) {
+                queueMicrotask(() => {
+                  // Auto-start break or finish session
+                  const currentSession = prev.currentSession || 1;
+                  const totalSessions = prev.totalSessions || 1;
+                  const breakDuration = prev.breakDuration || 300; // 5 minutes default
+                  
+                  if (currentSession < totalSessions) {
+                    // Start break
+                    const targetTime = now + breakDuration * 1000;
+                    setTimerState(current => ({
+                      ...current,
+                      isBreak: true,
+                      time: breakDuration,
+                      startTime: now,
+                      targetTime,
+                    }));
+                  } else {
+                    // All sessions completed
+                    setTimerState(current => ({
+                      ...current,
+                      isRunning: false,
+                      isBreak: false,
+                      time: 0,
+                      targetTime: undefined,
+                      currentSession: undefined,
+                      totalSessions: undefined,
+                      workDuration: undefined,
+                      breakDuration: undefined,
+                    }));
+                    
+                    playNotification();
+                    if (settings.visualNotifications) {
+                      if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification('All Pomodoro sessions completed!', {
+                          body: 'Great work! Take a longer break.',
+                          icon: '/favicon.ico',
+                        });
+                      }
+                    }
+                  }
+                });
+              }
+              return { ...prev, time: remainingSec };
+            }
+            return prev;
           }
-          return prev;
         } else {
           // Break mode: countdown to targetTime
           if (!prev.targetTime) return prev;
           const remainingSec = Math.max(0, Math.ceil((prev.targetTime - now) / 1000));
           if (remainingSec !== prev.time) {
-            // If finished, schedule end-of-break side effects after state update
+            // If break finished
             if (remainingSec === 0) {
               queueMicrotask(() => {
-                setTimerState(current => ({
-                  ...current,
-                  isRunning: false,
-                  isBreak: false,
-                  time: 0,
-                  targetTime: undefined,
-                }));
+                if (timerMode === 'pomodoro') {
+                  // Start next Pomodoro session
+                  const currentSession = (prev.currentSession || 1) + 1;
+                  const totalSessions = prev.totalSessions || 1;
+                  const workDuration = prev.workDuration || 1500; // 25 minutes default
+                  
+                  if (currentSession <= totalSessions) {
+                    setTimerState(current => ({
+                      ...current,
+                      isBreak: false,
+                      time: workDuration,
+                      startTime: now,
+                      targetTime: undefined,
+                      currentSession,
+                    }));
+                  } else {
+                    // All sessions completed
+                    setTimerState(current => ({
+                      ...current,
+                      isRunning: false,
+                      isBreak: false,
+                      time: 0,
+                      targetTime: undefined,
+                      currentSession: undefined,
+                      totalSessions: undefined,
+                      workDuration: undefined,
+                      breakDuration: undefined,
+                    }));
+                  }
+                } else {
+                  // Flow mode: just stop
+                  setTimerState(current => ({
+                    ...current,
+                    isRunning: false,
+                    isBreak: false,
+                    time: 0,
+                    targetTime: undefined,
+                  }));
+                }
 
                 playNotification();
 
@@ -207,7 +348,7 @@ export function useTimer(
         tickRef.current = null;
       }
     };
-  }, [timerState.isRunning, timerState.isBreak, settings.visualNotifications]);
+  }, [timerState.isRunning, timerState.isBreak, settings.visualNotifications, settings.timerMode]);
 
   // Audio notification
   const playNotification = () => {
@@ -251,24 +392,62 @@ export function useTimer(
 
     const sessionId = Date.now().toString();
     const now = Date.now();
+    const timerMode = settings.timerMode ?? 'flow';
 
-    setTimerState(prev => ({
-      ...prev,
-      isRunning: true,
-      isBreak: false,
-      startTime: now,
-      sessionId,
-      time: 0,
-      targetTime: undefined,
-    }));
+    if (timerMode === 'flow') {
+      // Flow mode: start counting up from 0
+      setTimerState(prev => ({
+        ...prev,
+        isRunning: true,
+        isBreak: false,
+        startTime: now,
+        sessionId,
+        time: 0,
+        targetTime: undefined,
+        currentSession: undefined,
+        totalSessions: undefined,
+        workDuration: undefined,
+        breakDuration: undefined,
+      }));
+    } else {
+      // Pomodoro mode: start countdown from work duration
+      const workDuration = (settings.pomodoroWorkDuration ?? 25) * 60; // Convert to seconds
+      const breakDuration = (settings.pomodoroBreakDuration ?? 5) * 60; // Convert to seconds
+      const totalSessions = settings.pomodoroSessions ?? 4;
+      
+      setTimerState(prev => ({
+        ...prev,
+        isRunning: true,
+        isBreak: false,
+        startTime: now,
+        sessionId,
+        time: workDuration,
+        targetTime: undefined,
+        currentSession: 1,
+        totalSessions,
+        workDuration,
+        breakDuration,
+      }));
+    }
   };
 
   const stopTimer = () => {
     if (!timerState.isRunning || timerState.isBreak) return;
 
+    const timerMode = settings.timerMode ?? 'flow';
+    const now = Date.now();
+    
     // Compute actual worked seconds based on wall clock
-    const workedSeconds = Math.max(0, Math.floor((Date.now() - timerState.startTime) / 1000));
-    const breakSeconds = Math.floor(workedSeconds / 5);
+    let workedSeconds: number;
+    
+    if (timerMode === 'flow') {
+      // Flow mode: elapsed time
+      workedSeconds = Math.max(0, Math.floor((now - timerState.startTime) / 1000));
+    } else {
+      // Pomodoro mode: work duration minus remaining time
+      const elapsedSec = Math.floor((now - timerState.startTime) / 1000);
+      workedSeconds = Math.min(elapsedSec, timerState.workDuration || 0);
+    }
 
     // Generate Focus session name if no task selected
     let sessionTaskId = '';
@@ -311,29 +490,70 @@ export function useTimer(
       localStorage.setItem('flow-tasks', JSON.stringify(updatedTasks));
     }
 
-    // Start break countdown drift-free
-    const now = Date.now();
-    const targetTime = now + breakSeconds * 1000;
+    if (timerMode === 'flow') {
+      // Flow mode: handle break based on settings
+      const flowBreakEnabled = settings.flowBreakEnabled ?? true;
+      
+      if (!flowBreakEnabled) {
+        // No break - just stop and reset
+        setTimerState(prev => ({
+          ...prev,
+          isRunning: false,
+          isBreak: false,
+          time: 0,
+          targetTime: undefined,
+        }));
+        
+        playNotification();
+        if (settings.visualNotifications) {
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Work session completed!', {
+              body: 'Ready for the next task?',
+              icon: '/favicon.ico',
+            });
+          }
+        }
+        return;
+      }
 
-    setTimerState(prev => ({
-      ...prev,
-      isRunning: breakSeconds > 0,
-      isBreak: breakSeconds > 0,
-      time: breakSeconds,
-      startTime: now,
-      targetTime: breakSeconds > 0 ? targetTime : undefined,
-    }));
+      // Calculate break duration
+      let breakSeconds: number;
+      const flowBreakType = settings.flowBreakType ?? 'percentage';
+      
+      if (flowBreakType === 'percentage') {
+        const percentage = settings.flowBreakPercentage ?? 20;
+        breakSeconds = Math.floor(workedSeconds * percentage / 100);
+      } else {
+        const fixedMinutes = settings.flowBreakFixed ?? 10;
+        breakSeconds = fixedMinutes * 60;
+      }
 
-    if (breakSeconds === 0) {
-      playNotification();
-      if (settings.visualNotifications) {
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Break time is over!', {
-            body: 'Ready to get back to work?',
-            icon: '/favicon.ico',
-          });
+      // Start break countdown
+      const targetTime = now + breakSeconds * 1000;
+
+      setTimerState(prev => ({
+        ...prev,
+        isRunning: breakSeconds > 0,
+        isBreak: breakSeconds > 0,
+        time: breakSeconds,
+        startTime: now,
+        targetTime: breakSeconds > 0 ? targetTime : undefined,
+      }));
+
+      if (breakSeconds === 0) {
+        playNotification();
+        if (settings.visualNotifications) {
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Break time is over!', {
+              body: 'Ready to get back to work?',
+              icon: '/favicon.ico',
+            });
+          }
         }
       }
+    } else {
+      // Pomodoro mode: timer will auto-transition to break or next session
+      // This is handled in the ticker effect
     }
   };
 
@@ -345,12 +565,84 @@ export function useTimer(
       startTime: 0,
       sessionId: '',
       targetTime: undefined,
+      currentSession: undefined,
+      totalSessions: undefined,
+      workDuration: undefined,
+      breakDuration: undefined,
     });
   };
 
-  const estimatedBreakTime = timerState.isRunning && !timerState.isBreak
-    ? Math.floor(Math.max(0, Math.floor((Date.now() - timerState.startTime) / 1000)) / 5)
-    : 0;
+  const skipBreak = () => {
+    if (!timerState.isBreak || !timerState.isRunning) return;
+    
+    const timerMode = settings.timerMode ?? 'flow';
+    const now = Date.now();
+    
+    if (timerMode === 'pomodoro') {
+      // Start next Pomodoro session
+      const currentSession = (timerState.currentSession || 1) + 1;
+      const totalSessions = timerState.totalSessions || 1;
+      const workDuration = timerState.workDuration || 1500; // 25 minutes default
+      
+      if (currentSession <= totalSessions) {
+        setTimerState(prev => ({
+          ...prev,
+          isBreak: false,
+          time: workDuration,
+          startTime: now,
+          targetTime: undefined,
+          currentSession,
+        }));
+      } else {
+        // All sessions completed
+        setTimerState(prev => ({
+          ...prev,
+          isRunning: false,
+          isBreak: false,
+          time: 0,
+          targetTime: undefined,
+          currentSession: undefined,
+          totalSessions: undefined,
+          workDuration: undefined,
+          breakDuration: undefined,
+        }));
+      }
+    } else {
+      // Flow mode: just stop
+      setTimerState(prev => ({
+        ...prev,
+        isRunning: false,
+        isBreak: false,
+        time: 0,
+        targetTime: undefined,
+      }));
+    }
+  };
+
+  const estimatedBreakTime = (() => {
+    if (!timerState.isRunning || timerState.isBreak) return 0;
+    
+    const timerMode = settings.timerMode ?? 'flow';
+    
+    if (timerMode === 'flow') {
+      const flowBreakEnabled = settings.flowBreakEnabled ?? true;
+      if (!flowBreakEnabled) return 0;
+      
+      const elapsedSec = Math.max(0, Math.floor((Date.now() - timerState.startTime) / 1000));
+      const flowBreakType = settings.flowBreakType ?? 'percentage';
+      
+      if (flowBreakType === 'percentage') {
+        const percentage = settings.flowBreakPercentage ?? 20;
+        return Math.floor(elapsedSec * percentage / 100);
+      } else {
+        const fixedMinutes = settings.flowBreakFixed ?? 10;
+        return fixedMinutes * 60;
+      }
+    } else {
+      // Pomodoro mode: show break duration
+      return (settings.pomodoroBreakDuration ?? 5) * 60;
+    }
+  })();
 
   return {
     time: timerState.time,
@@ -359,6 +651,9 @@ export function useTimer(
     startTimer,
     stopTimer,
     resetTimer,
+    skipBreak,
     estimatedBreakTime,
+    currentSession: timerState.currentSession || 1,
+    totalSessions: timerState.totalSessions || 1,
   };
 }
