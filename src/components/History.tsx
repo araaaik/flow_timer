@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Download, Trash2, Search, Calendar, BarChart3 } from 'lucide-react';
 import type { Task, Session } from '../App';
 import { useColorSystem } from '../hooks/useColorSystem';
+import { getAccentHex } from '../utils/colorSystem';
 
 /**
  * History.tsx
@@ -47,14 +48,9 @@ function History({
   const [selectedDate, setSelectedDate] = useState(new Date().toDateString());
   const [view, setView] = useState<'day' | 'week' | 'month'>('day');
   
-  // Get hex color for CSS variables
+  // Get hex value for current accent
   const colorSystem = useColorSystem();
-  const getAccentHex = () => {
-    const allColors = colorSystem.getAllAccentColors();
-    const color = allColors.find(c => c.value === accentColor);
-    return color?.color || '#3b82f6'; // fallback to blue
-  };
-  const accentHex = getAccentHex();
+  const accentHex = getAccentHex(accentColor, colorSystem.getAllAccentColors());
   const [searchTask, setSearchTask] = useState('');
 
   /** formatTime() -> "H:MM" or "Xm" when under 1h */

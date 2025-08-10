@@ -11,6 +11,8 @@ import { useTimer } from './hooks/useTimer';
 import { useTasks } from './hooks/useTasks';
 import { useTheme } from './hooks/useTheme';
 import { useMusicPlayer } from './hooks/useMusicPlayer';
+import { useColorSystem } from './hooks/useColorSystem';
+import { getAccentHex, getAccentClasses } from './utils/colorSystem';
 
 /**
  * Task
@@ -116,7 +118,7 @@ function App() {
     visualNotifications: true,
     audioNotifications: true,
     theme: 'light',
-    accentColor: 'blue',
+    accentColor: 'blue-500',
     flatMode: false,
     colorTimer: false,
     showTasks: true,
@@ -138,6 +140,7 @@ function App() {
   });
 
   const { theme, toggleTheme, accentColor } = useTheme(settings.theme, settings.accentColor);
+  const colorSystem = useColorSystem();
 
   // Ensure UI re-renders immediately when theme toggles without page reload
   useEffect(() => {
@@ -205,28 +208,10 @@ function App() {
   // Global switch for card shadows: disabled in flatMode (ON => no shadows)
   const cardShadow = settings.flatMode ? '' : 'shadow-lg';
 
-  // Helper to map accent color to Tailwind classes for backgrounds and text
-  const accentBgMap: Record<string, string> = {
-    blue: 'bg-blue-500',
-    red: 'bg-red-500',
-    // Green accent now uses custom hex via inline style, keep class as fallback
-    green: 'bg-green-500',
-    purple: 'bg-purple-500',
-    orange: 'bg-orange-500',
-    pink: 'bg-pink-500',
-    indigo: 'bg-indigo-500',
-    yellow: 'bg-yellow-500',
-    teal: 'bg-teal-500',
-    cyan: 'bg-cyan-500',
-    lime: 'bg-lime-500',
-    emerald: 'bg-emerald-500',
-    violet: 'bg-violet-500',
-    rose: 'bg-rose-500',
-    slate: 'bg-slate-500',
-    black: 'bg-black',
-  };
+  // Get Tailwind classes for the current accent color
+  const accentClasses = getAccentClasses(accentColor, colorSystem.getAllAccentColors());
   const timerSurfaceClass = settings.colorTimer
-    ? `${accentBgMap[accentColor] ?? 'bg-blue-500'} text-white`
+    ? `${accentClasses.bg} text-white`
     : `${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`;
 
   // (removed unused accentInlineStyle)
@@ -278,28 +263,7 @@ function App() {
                 className={`w-3 h-3 rounded-full ${isRunning ? 'animate-pulse' : ''}`}
                 style={
                   isRunning
-                    ? (() => {
-                        // Map accent color to solid color for the status dot
-                        const hex: Record<string, string> = {
-                          blue: '#3b82f6',
-                          purple: '#8b5cf6',
-                          green: '#0f766e',  // project green
-                          red: '#ef4444',
-                          orange: '#f97316',
-                          pink: '#ec4899',
-                          indigo: '#6366f1',
-                          yellow: '#eab308',
-                          teal: '#14b8a6',
-                          cyan: '#06b6d4',
-                          lime: '#84cc16',
-                          emerald: '#10b981',
-                          violet: '#8b5cf6',
-                          rose: '#f43f5e',
-                          slate: '#64748b',
-                          black: '#111827',
-                        };
-                        return { backgroundColor: hex[accentColor] ?? '#3b82f6' };
-                      })()
+                    ? { backgroundColor: getAccentHex(accentColor, colorSystem.getAllAccentColors()) }
                     : { backgroundColor: theme === 'dark' ? '#4b5563' : '#d1d5db' } // gray when not running (dark: gray-600, light: gray-300)
                 }
               />
@@ -328,7 +292,7 @@ function App() {
               </button>
 
               {/* Status dot uses accent color when on break */}
-              <style>{`:root{--accent-green:#0f766e}`}</style>
+              <style>{`:root{--accent-green:${getAccentHex('teal-700', colorSystem.getAllAccentColors())}}`}</style>
               
               {(settings.showMusicPlayer ?? true) && (
                 <button
@@ -342,15 +306,7 @@ function App() {
                   <Music 
                     size={18} 
                     className={musicPlaying && !showMusicPlayer ? 'animate-pulse' : ''}
-                    style={musicPlaying && !showMusicPlayer ? (() => {
-                      const hex: Record<string, string> = {
-                        blue: '#3b82f6', purple: '#8b5cf6', green: '#0f766e', red: '#ef4444',
-                        orange: '#f97316', pink: '#ec4899', indigo: '#6366f1', yellow: '#eab308',
-                        teal: '#14b8a6', cyan: '#06b6d4', lime: '#84cc16', emerald: '#10b981',
-                        violet: '#8b5cf6', rose: '#f43f5e', slate: '#64748b', black: '#111827'
-                      };
-                      return { color: hex[accentColor] ?? '#3b82f6' };
-                    })() : undefined}
+                    style={musicPlaying && !showMusicPlayer ? { color: getAccentHex(accentColor, colorSystem.getAllAccentColors()) } : undefined}
                   />
                 </button>
               )}
@@ -407,15 +363,7 @@ function App() {
                 className={`w-3 h-3 rounded-full ${isRunning ? 'animate-pulse' : ''}`}
                 style={
                   isRunning
-                    ? (() => {
-                        const hex: Record<string, string> = {
-                          blue: '#3b82f6', purple: '#8b5cf6', green: '#0f766e', red: '#ef4444',
-                          orange: '#f97316', pink: '#ec4899', indigo: '#6366f1', yellow: '#eab308',
-                          teal: '#14b8a6', cyan: '#06b6d4', lime: '#84cc16', emerald: '#10b981',
-                          violet: '#8b5cf6', rose: '#f43f5e', slate: '#64748b', black: '#111827',
-                        };
-                        return { backgroundColor: hex[accentColor] ?? '#3b82f6' };
-                      })()
+                    ? { backgroundColor: getAccentHex(accentColor, colorSystem.getAllAccentColors()) }
                     : { backgroundColor: theme === 'dark' ? '#4b5563' : '#d1d5db' }
                 }
               />
@@ -478,7 +426,7 @@ function App() {
                 <div className="space-y-6 sm:sticky sm:top-6 sm:self-start">
                   <div
                     className={`rounded-2xl p-6 ${cardShadow} transition-colors duration-300 ease-out-smooth ${timerSurfaceClass}`}
-                    style={settings.colorTimer && accentColor === 'green' ? { backgroundColor: '#0f766e', color: '#ffffff' } : undefined}
+                    style={settings.colorTimer ? { backgroundColor: getAccentHex(accentColor, colorSystem.getAllAccentColors()), color: '#ffffff' } : undefined}
                   >
                     <Timer
                       time={time}
@@ -535,7 +483,7 @@ function App() {
                 <div className="w-full max-w-md space-y-6">
                   <div
                     className={`rounded-2xl p-6 ${cardShadow} transition-colors duration-300 ease-out-smooth ${timerSurfaceClass}`}
-                    style={settings.colorTimer && accentColor === 'green' ? { backgroundColor: '#0f766e', color: '#ffffff' } : undefined}
+                    style={settings.colorTimer ? { backgroundColor: getAccentHex(accentColor, colorSystem.getAllAccentColors()), color: '#ffffff' } : undefined}
                   >
                     <Timer
                       time={time}
@@ -571,7 +519,7 @@ function App() {
                 {/* Timer Block */}
                 <div
                   className={`rounded-2xl p-6 ${cardShadow} transition-colors duration-300 ease-out-smooth ${timerSurfaceClass}`}
-                  style={settings.colorTimer && accentColor === 'green' ? { backgroundColor: '#0f766e', color: '#ffffff' } : undefined}
+                  style={settings.colorTimer ? { backgroundColor: getAccentHex(accentColor, colorSystem.getAllAccentColors()), color: '#ffffff' } : undefined}
                 >
                   <Timer
                     time={time}
@@ -617,7 +565,7 @@ function App() {
           <div className="flex justify-center">
             <div
               className={`rounded-2xl p-6 ${cardShadow} transition-colors duration-300 ease-out-smooth ${timerSurfaceClass} w-full max-w-xs`}
-              style={settings.colorTimer && accentColor === 'green' ? { backgroundColor: '#0f766e', color: '#ffffff' } : undefined}
+              style={settings.colorTimer ? { backgroundColor: getAccentHex(accentColor, colorSystem.getAllAccentColors()), color: '#ffffff' } : undefined}
             >
               <Timer
                 time={time}

@@ -227,7 +227,7 @@ Source: [`src.App.tsx`](src/App.tsx)
 - Card shadow policy:
   - settings.flatMode true => shadows disabled globally; components compute cardShadow accordingly
 - Accent:
-  - Class maps provide tailwind-safe colors; 'green' also uses inline hex (#266a5b) in specific places
+  - Class maps provide tailwind-safe colors; 'green' also uses inline hex (#0f766e) in specific places
 
 ## Change Log Pointers
 

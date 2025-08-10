@@ -7,6 +7,7 @@ Key principles:
 - Do not recolor neutral container/card backgrounds (except the Timer surface when Color Timer is ON).
 - Accent applies to interactive or emphasis elements (buttons, chips, indicators, progress, active rings, icons, selected states).
 - Implementation uses Tailwind class maps for all accents. For any custom hex accent, a small number of inline style hooks are used in specific spots.
+- **Settings Panel**: Uses centralized CSS variables (`--accent-color`) and standardized CSS classes for consistent styling.
 
 How to change the accent globally:
 - Prefer updating the Tailwind-based maps (class maps) where present.
@@ -48,10 +49,10 @@ Implementation: Tailwind class maps for all accents + optional inline style hook
 4) Music Player ([src/components/MusicPlayer.tsx](src/components/MusicPlayer.tsx))
 - Left indicators
   - Animated equalizer:
-    - When playing: 3-bar equalizer animates continuously with staggered keyframes (eq-bounce-a/b/c) and uses the current accent color (green uses #266a5b).
+    - When playing: 3-bar equalizer animates continuously with staggered keyframes (eq-bounce-a/b/c) and uses the current accent color (green uses #0f766e).
     - When paused: bars are static in neutral gray (gray-400).
   - Status dot:
-    - When playing: dot is colored with the current accent (green uses #266a5b) and may pulse.
+    - When playing: dot is colored with the current accent (green uses #0f766e) and may pulse.
     - When paused: dot remains neutral gray (dark: #9ca3af, light: #9ca3af).
   - Implementation: inline per-accent color map and conditional styles based on player state; accent is read from `flow-settings`.
   - Volume control:
@@ -66,10 +67,21 @@ Implementation: Tailwind class maps for all accents + optional inline style hook
 5) App ([src/App.tsx](src/App.tsx))
 - Header status dot (left of FLOW)
 Implementation:
-- When timer is running (work or break), dot uses the current accent color (project green #266a5b for green).
+- When timer is running (work or break), dot uses the current accent color (project green #0f766e for green).
 - When timer is not running, dot is gray (light: #d1d5db, dark: #4b5563).
 
-5) App ([src/App.tsx](src/App.tsx))
+6) Settings Panel ([src/components/SettingsPanel.tsx](src/components/SettingsPanel.tsx))
+- **Centralized accent color system**: Uses CSS variables for consistent styling
+  - `--accent-color`: Main accent color hex value
+  - `--accent-color-hover`: Slightly transparent version for hover states
+- **Standardized CSS classes**:
+  - `.settings-active-button`: Active menu buttons (Timer Mode, Break Type, etc.)
+  - `.settings-active-toggle`: Active toggle switches
+  - `.settings-action-button`: Action buttons (Save, Add, etc.)
+- **Benefits**: New settings elements automatically inherit correct accent colors without manual styling
+- **Implementation**: CSS variables are set on the main container and used by predefined classes
+
+7) App ([src/App.tsx](src/App.tsx))
 - Timer surface when Color Timer is ON
 Implementation: Tailwind map for backgrounds; optional inline style hook for custom hex background and white text.
 
@@ -105,3 +117,26 @@ Maintenance checklist
 - Keep accent changes scoped to accent elements; avoid changing neutral containers.
 - Preserve Tailwind hover/focus/transition classes; layer inline styles for color only.
 - Centralize any new inline hooks by updating this document with file references to maintain a single source of truth.
+- For Settings Panel: Use the centralized CSS classes (`.settings-active-button`, `.settings-active-toggle`, `.settings-action-button`) for automatic accent color application.
+
+## Centralized Settings Panel System
+
+The Settings Panel now uses a centralized approach for accent colors:
+
+**CSS Variables:**
+- `--accent-color`: Current accent color hex value
+- `--accent-color-hover`: Slightly transparent version for hover effects
+
+**Standardized Classes:**
+- `.settings-active-button`: For active menu buttons (Timer Mode, Break Type, etc.)
+- `.settings-active-toggle`: For active toggle switches
+- `.settings-action-button`: For action buttons (Save, Add, etc.)
+
+**Benefits:**
+- New settings elements automatically inherit correct accent colors
+- No need for manual inline styling
+- Consistent behavior across all settings components
+- Easy maintenance and updates
+
+**Usage:**
+Simply apply the appropriate class to new settings elements, and they will automatically use the current accent color.

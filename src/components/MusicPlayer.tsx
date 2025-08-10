@@ -58,7 +58,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
   const accentHex = (() => {
     const allColors = colorSystem.getAllAccentColors();
     const color = allColors.find(c => c.value === accentColor);
-    return color?.color || '#3b82f6'; // fallback to blue
+    return color?.hexValue || '#3b82f6'; // fallback to blue
   })();
 
 

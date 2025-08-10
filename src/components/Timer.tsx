@@ -3,6 +3,7 @@ import { Play, Pause, RotateCcw } from 'lucide-react';
 import type { Task, Settings } from '../App';
 
 import { useColorSystem } from '../hooks/useColorSystem';
+import { getAccentHex } from '../utils/colorSystem';
 
 /**
  * Timer.tsx
@@ -73,12 +74,8 @@ function Timer({
 }: TimerProps) {
   const colorSystem = useColorSystem();
   
-  // Get hex color for current accent
-  const getAccentHex = () => {
-    const allColors = colorSystem.getAllAccentColors();
-    const color = allColors.find(c => c.value === accentColor);
-    return color?.color || '#3b82f6'; // fallback to blue
-  };
+  // Get hex value for current accent
+  const accentHex = getAccentHex(accentColor, colorSystem.getAllAccentColors());
   
   /**
    * formatTime()
@@ -148,8 +145,8 @@ function Timer({
       <div 
         className="text-center"
         style={{
-          '--accent-color': getAccentHex(),
-          '--accent-color-hover': getAccentHex() + 'dd',
+          '--accent-color': accentHex,
+          '--accent-color-hover': accentHex + 'dd',
         } as React.CSSProperties}
       >
       {/* Status */}
@@ -262,8 +259,7 @@ function Timer({
             style={
               !colorTimerOn && theme !== 'dark'
                 ? (() => {
-                    const hex = getAccentHex();
-                    return { backgroundColor: hex + '20', color: hex };
+                    return { backgroundColor: accentHex + '20', color: accentHex };
                   })()
                 : undefined
             }

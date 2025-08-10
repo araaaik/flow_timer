@@ -3,6 +3,7 @@ import { Plus, X, Clock, Target, BarChart3 } from 'lucide-react';
 import type { Task, Session } from '../App';
 import { getAccentClasses } from '../utils/colorSystem';
 import { useColorSystem } from '../hooks/useColorSystem';
+import { getAccentHex } from '../utils/colorSystem';
 
 /**
  * TaskManager.tsx
@@ -57,14 +58,10 @@ function TaskManager({
   onShowHistory
 }: TaskManagerProps & { isRunning?: boolean }) {
   const colorSystem = useColorSystem();
-  const accentClasses = getAccentClasses(accentColor, colorSystem.getAllAccentColors());
+
   
-  // Get hex color for current accent
-  const getAccentHex = () => {
-    const allColors = colorSystem.getAllAccentColors();
-    const color = allColors.find(c => c.value === accentColor);
-    return color?.color || '#3b82f6'; // fallback to blue
-  };
+  // Get hex value for current accent
+  const accentHex = getAccentHex(accentColor, colorSystem.getAllAccentColors());
   
   const [newTaskName, setNewTaskName] = useState('');
   const [newTaskTime, setNewTaskTime] = useState('');
@@ -223,8 +220,8 @@ function TaskManager({
         className="min-w-0" 
         onClick={handleContainerClick}
         style={{
-          '--accent-color': getAccentHex(),
-          '--accent-color-hover': getAccentHex() + 'dd',
+          '--accent-color': accentHex,
+          '--accent-color-hover': accentHex + 'dd',
         } as React.CSSProperties}
       >
       <div className="flex items-center justify-between mb-4">
@@ -362,10 +359,8 @@ function TaskManager({
                       <div className="mt-2">
                         <div className={`w-full h-1.5 rounded-full transition-colors duration-240 ease-out-smooth ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'}`}>
                           <div
-                            className={`h-1.5 rounded-full transition-[width,background-color] duration-240 ease-out-smooth will-change-[width] ${
-                              accentClasses.bg
-                            }`}
-                            style={{ width: `${pctToday}%`, backgroundColor: getAccentHex() }}
+                            className="h-1.5 rounded-full transition-[width,background-color] duration-240 ease-out-smooth will-change-[width]"
+                            style={{ width: `${pctToday}%`, backgroundColor: accentHex }}
                           />
                         </div>
                         <div className="mt-1 flex items-center justify-between text-[10px] leading-3">

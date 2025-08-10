@@ -3,7 +3,7 @@ import { Bell, BellOff, Palette, Layers, Brush, Music, Plus, Edit3, Trash2, Chec
 import type { Settings } from '../App';
 import { useMusicPlayer } from '../hooks/useMusicPlayer';
 import { useColorSystem } from '../hooks/useColorSystem';
-import { generateRandomColor, isLightColor } from '../utils/colorSystem';
+import { generateRandomColor, getAccentHex, isLightColor } from '../utils/colorSystem';
 
 /**
  * SettingsPanel.tsx
@@ -172,7 +172,7 @@ function MusicStreamsSettings({ theme }: MusicStreamsSettingsProps) {
               <div className="flex gap-2">
                 <button
                   onClick={saveEdit}
-                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium text-white settings-action-button"
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium settings-action-button"
                 >
                   <Check size={12} />
                   Save
@@ -250,7 +250,7 @@ function MusicStreamsSettings({ theme }: MusicStreamsSettingsProps) {
                   <div className="flex gap-2">
                     <button
                       onClick={saveEdit}
-                      className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium text-white settings-action-button"
+                      className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium settings-action-button"
                     >
                       <Check size={12} />
                       Save
@@ -355,25 +355,25 @@ interface ColorManagerProps {
 
 function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerProps) {
   const colorSystem = useColorSystem();
-  const [isAdding, setIsAdding] = useState(false);
-  const [newColorName, setNewColorName] = useState('');
-  const [newColorValue, setNewColorValue] = useState('');
+  const [showTailwindPicker, setShowTailwindPicker] = useState(false);
+  const [isAddingCustom, setIsAddingCustom] = useState(false);
 
   const allColors = colorSystem.getAllAccentColors();
+  const tailwindColors = colorSystem.getAllTailwindColors();
 
-  const handleAddColor = () => {
-    if (newColorName.trim() && newColorValue.trim()) {
-      const success = colorSystem.addAccentColor(newColorName.trim(), newColorValue.trim());
-      if (success) {
-        setNewColorName('');
-        setNewColorValue('');
-        setIsAdding(false);
-      }
+  const handleAddTailwindColor = (color: AccentColor) => {
+    const success = colorSystem.addTailwindAccentColor(color);
+    if (success) {
+      setShowTailwindPicker(false);
     }
   };
 
-  const handleRandomColor = () => {
-    setNewColorValue(generateRandomColor());
+  const handleAddRandomColor = () => {
+    const randomColor = generateRandomColor();
+    const success = colorSystem.addCustomAccentColor(randomColor);
+    if (success) {
+      // Color added successfully
+    }
   };
 
   return (
@@ -385,91 +385,69 @@ function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerP
             Accent colors
           </span>
         </div>
-        <button
-          onClick={() => setIsAdding(!isAdding)}
-          className={`p-1 rounded transition-colors ${
-            theme === 'dark'
-              ? 'hover:bg-gray-600 text-gray-400 hover:text-gray-300'
-              : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
-          }`}
-          title="Add custom color"
-        >
-          <Plus size={14} />
-        </button>
+        <div className="flex gap-1">
+          <button
+            onClick={() => setShowTailwindPicker(!showTailwindPicker)}
+            className={`p-1 rounded transition-colors ${
+              theme === 'dark'
+                ? 'hover:bg-gray-600 text-gray-400 hover:text-gray-300'
+                : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+            }`}
+            title="Browse Tailwind colors"
+          >
+            <Palette size={14} />
+          </button>
+          <button
+            onClick={handleAddRandomColor}
+            className={`p-1 rounded transition-colors ${
+              theme === 'dark'
+                ? 'hover:bg-gray-600 text-gray-400 hover:text-gray-300'
+                : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+            }`}
+            title="Add random color"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
       </div>
 
-      {isAdding && (
+      {/* Tailwind Color Picker */}
+      {showTailwindPicker && (
         <div className={`p-3 rounded-lg border ${
           theme === 'dark' ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'
         }`}>
-          <div className="space-y-2">
-            <input
-              type="text"
-              placeholder="Color name"
-              value={newColorName}
-              onChange={(e) => setNewColorName(e.target.value)}
-              className={`w-full px-3 py-2 rounded-lg text-sm ${
-                theme === 'dark' 
-                  ? 'bg-gray-600 text-white border-gray-500' 
-                  : 'bg-white text-gray-900 border-gray-300'
-              } border focus:outline-none focus:ring-2 focus:ring-opacity-50`}
-            />
-            <div className="flex gap-2">
-              <input
-                type="color"
-                value={newColorValue}
-                onChange={(e) => setNewColorValue(e.target.value)}
-                className="w-12 h-10 rounded border-0 cursor-pointer"
-              />
-              <input
-                type="text"
-                placeholder="#000000"
-                value={newColorValue}
-                onChange={(e) => setNewColorValue(e.target.value)}
-                className={`flex-1 px-3 py-2 rounded-lg text-sm ${
-                  theme === 'dark' 
-                    ? 'bg-gray-600 text-white border-gray-500' 
-                    : 'bg-white text-gray-900 border-gray-300'
-                } border focus:outline-none focus:ring-2 focus:ring-opacity-50`}
-              />
-              <button
-                onClick={handleRandomColor}
-                className={`px-3 py-2 rounded-lg text-xs font-medium ${
-                  theme === 'dark'
-                    ? 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Random
-              </button>
+          <div className="space-y-3">
+            <h4 className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+              Choose from Tailwind Colors
+            </h4>
+            <div className="grid grid-cols-8 gap-2 max-h-48 overflow-y-auto">
+              {tailwindColors.map((color) => (
+                <button
+                  key={color.value}
+                  onClick={() => handleAddTailwindColor(color)}
+                  className="group relative w-8 h-8 rounded-lg border-2 border-transparent hover:border-gray-400 transition-all"
+                  style={{ backgroundColor: color.hexValue }}
+                  title={color.name}
+                >
+                  <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="text-xs whitespace-nowrap bg-black text-white px-1 py-0.5 rounded">
+                      {color.name}
+                    </div>
+                  </div>
+                </button>
+              ))}
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleAddColor}
-                className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium text-white settings-action-button"
-              >
-                <Check size={12} />
-                Add
-              </button>
-              <button
-                onClick={() => {
-                  setIsAdding(false);
-                  setNewColorName('');
-                  setNewColorValue('');
-                }}
-                className={`flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium ${
-                  theme === 'dark'
-                    ? 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                <X size={12} />
-                Cancel
-              </button>
-            </div>
+            <button
+              onClick={() => setShowTailwindPicker(false)}
+              className={`text-xs ${theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
+
+
 
       <div className="flex flex-wrap gap-2">
         {allColors.map((color) => (
@@ -482,7 +460,7 @@ function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerP
                   : 'border-transparent hover:scale-105'
               }`}
               style={{ 
-                backgroundColor: color.color,
+                backgroundColor: color.hexValue,
                 minWidth: '2.5rem',
                 minHeight: '2.5rem'
               }}
@@ -492,7 +470,7 @@ function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerP
               <button
                 onClick={() => colorSystem.removeAccentColor(color.value)}
                 className={`absolute -top-1 -right-1 w-5 h-5 rounded-full ${
-                  isLightColor(color.color) ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'
+                  isLightColor(color.hexValue) ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'
                 } opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center`}
                 title="Remove color"
               >
@@ -590,7 +568,7 @@ function BackgroundManager({ theme, settings, onUpdateSettings, type }: ColorMan
             <div className="flex gap-2">
               <button
                 onClick={handleAddBackground}
-                className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium text-white settings-action-button"
+                className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium settings-action-button"
               >
                 <Check size={12} />
                 Add
@@ -648,14 +626,8 @@ function BackgroundManager({ theme, settings, onUpdateSettings, type }: ColorMan
 function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps) {
   const colorSystem = useColorSystem();
   
-  // Get hex color for CSS variables
-  const getAccentHex = () => {
-    const allColors = colorSystem.getAllAccentColors();
-    const color = allColors.find(c => c.value === settings.accentColor);
-    return color?.color || '#3b82f6'; // fallback to blue
-  };
-
-  const accentHex = getAccentHex();
+  // Get hex value for the current accent color
+  const accentHex = getAccentHex(settings.accentColor, colorSystem.getAllAccentColors());
   
   return (
     <div 
