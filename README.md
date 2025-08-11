@@ -18,21 +18,16 @@ English | [Русский](README.ru.md)
 The project is configured for automatic deployment to GitHub Pages:
 
 1. Push to `main` branch triggers automatic build and deploy
-2. Site will be available at `https://[username].github.io/[repository-name]/`
-3. GitHub Actions workflow handles the entire process
+2.  Site will be available at `https://araaaik.github.io/flow_timer/`
+3.  GitHub Actions workflow handles the entire process
 
-### Manual Deploy
-
-```bash
-npm run deploy
-```
-
-This builds the project and pushes to `gh-pages` branch.
 
 ## Docs
 
 - Architecture overview: [docs/Architecture.md](docs/Architecture.md)
 - Public API reference: [docs/API.md](docs/API.md)
+- Timer system guide: [docs/timer-system.md](docs/timer-system.md)
+- Timer mode documentation: [docs/timer-mode.md](docs/timer-mode.md)
 - Accent usage guideline: [docs/accent-usage.md](docs/accent-usage.md)
 - Music player design: [docs/music-player.md](docs/music-player.md)
 

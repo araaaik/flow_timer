@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { X, Download, Trash2, Search, Calendar, BarChart3 } from 'lucide-react';
+import { X, Download, Trash2, Search, Calendar, BarChart3, Settings } from 'lucide-react';
 import type { Task, Session } from '../App';
 import { useColorSystemContext } from '../contexts/ColorSystemContext';
 import { getAccentHex } from '../utils/colorSystem';
+import DataManager from './DataManager';
+import { exportToCSV, getPresetDateRanges, type DateRange } from '../utils/dataManager';
 
 /**
  * History.tsx
@@ -32,6 +34,8 @@ interface HistoryProps {
   onClose: () => void;
   onDeleteSession: (sessionId: string) => void;
   onDeleteDay: (date: string) => void;
+  onUpdateSessions: (sessions: Session[]) => void;
+  onUpdateTasks: (tasks: Task[]) => void;
   theme: 'light' | 'dark';
   accentColor: string;
 }
@@ -42,11 +46,16 @@ function History({
   onClose,
   onDeleteSession,
   onDeleteDay,
+  onUpdateSessions,
+  onUpdateTasks,
   theme,
   accentColor
 }: HistoryProps) {
   const [selectedDate, setSelectedDate] = useState(new Date().toDateString());
   const [view, setView] = useState<'day' | 'week' | 'month'>('day');
+  const [showDataManager, setShowDataManager] = useState(false);
+  const [showQuickExport, setShowQuickExport] = useState(false);
+  const [exportPeriod, setExportPeriod] = useState<'all' | 'custom'>('all');
   
   // Get hex value for current accent
   const colorSystem = useColorSystemContext();
@@ -101,34 +110,40 @@ function History({
   };
 
   /**
-   * handleExport()
-   * Downloads JSON with day summary and session details for the selected date.
+   * handleQuickExport()
+   * Export current view (day, week, or month)
    */
-  const handleExport = () => {
-    const stats = getDayStats(selectedDate);
-    const data = {
-      date: selectedDate,
-      stats: {
-        totalTime: formatTime(stats.totalTime),
-        sessionCount: stats.sessionCount,
-        avgSession: formatTime(Math.round(stats.avgSession)),
-        longestSession: formatTime(stats.longestSession)
-      },
-      sessions: stats.sessions.map(s => ({
-        task: s.taskName,
-        duration: formatTime(s.duration),
-        startTime: formatDateTime(s.startTime),
-        endTime: formatDateTime(s.endTime)
-      }))
-    };
+  const handleQuickExport = () => {
+    let dateRange: DateRange;
     
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `flow-export-${selectedDate.replace(/\s+/g, '-')}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    if (view === 'day') {
+      // Export selected day
+      const date = new Date(selectedDate);
+      dateRange = {
+        start: new Date(date.setHours(0, 0, 0, 0)),
+        end: new Date(date.setHours(23, 59, 59, 999))
+      };
+    } else if (view === 'week') {
+      // Export current week
+      const weekDates = getWeekDates(new Date(selectedDate));
+      const startDate = new Date(weekDates[0]);
+      const endDate = new Date(weekDates[6]);
+      dateRange = {
+        start: new Date(startDate.setHours(0, 0, 0, 0)),
+        end: new Date(endDate.setHours(23, 59, 59, 999))
+      };
+    } else {
+      // Export current month
+      const date = new Date(selectedDate);
+      const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+      const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      dateRange = {
+        start: new Date(startOfMonth.setHours(0, 0, 0, 0)),
+        end: new Date(endOfMonth.setHours(23, 59, 59, 999))
+      };
+    }
+    
+    exportToCSV(sessions, tasks, dateRange);
   };
 
   /** handleDeleteDay(): confirm and delegate day deletion */
@@ -233,14 +248,34 @@ function History({
             />
             <h2 className="text-xl font-semibold">Statistics & History</h2>
           </div>
-          <button
-            onClick={onClose}
-            className={`p-2 rounded-lg transition-colors ${
-              theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-            }`}
-          >
-            <X size={20} />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleQuickExport}
+              className={`p-2 rounded-lg transition-colors ${
+                theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+              }`}
+              title={`Export ${view === 'day' ? 'Day' : view === 'week' ? 'Week' : 'Month'}`}
+            >
+              <Download size={20} />
+            </button>
+            <button
+              onClick={() => setShowDataManager(true)}
+              className={`p-2 rounded-lg transition-colors ${
+                theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+              }`}
+              title="Data Management"
+            >
+              <Settings size={20} />
+            </button>
+            <button
+              onClick={onClose}
+              className={`p-2 rounded-lg transition-colors ${
+                theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+              }`}
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)] history-scrollbar">
@@ -336,19 +371,8 @@ function History({
               </div>
 
               {/* Actions */}
-              <div className="flex space-x-2 mb-6">
-                <button
-                  onClick={handleExport}
-                  className={`flex items-center px-3 py-2 rounded-lg text-sm ${
-                    theme === 'dark'
-                      ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
-                  }`}
-                >
-                  <Download size={14} className="mr-1" />
-                  Export
-                </button>
-                {dayStats.sessionCount > 0 && (
+              {dayStats.sessionCount > 0 && (
+                <div className="flex flex-wrap gap-2 mb-6">
                   <button
                     onClick={handleDeleteDay}
                     className={`flex items-center px-3 py-2 rounded-lg text-sm ${
@@ -360,8 +384,8 @@ function History({
                     <Trash2 size={14} className="mr-1" />
                     Delete Day
                   </button>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Sessions List */}
               <div className="space-y-2">
@@ -439,6 +463,19 @@ function History({
           )}
         </div>
       </div>
+      
+      {/* Data Manager Modal */}
+      {showDataManager && (
+        <DataManager
+          sessions={sessions}
+          tasks={tasks}
+          onUpdateSessions={onUpdateSessions}
+          onUpdateTasks={onUpdateTasks}
+          theme={theme}
+          accentColor={accentHex}
+          onClose={() => setShowDataManager(false)}
+        />
+      )}
     </div>
     </>
   );

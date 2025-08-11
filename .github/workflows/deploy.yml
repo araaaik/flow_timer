@@ -24,6 +24,8 @@ jobs:
       run: npm ci
       
     - name: Build
+      env:
+        VITE_GH_PAGES_BASE: /flow_timer/
       run: npm run build
       
     - name: Deploy to GitHub Pages

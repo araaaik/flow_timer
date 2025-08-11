@@ -200,8 +200,8 @@ export function useTimer(
 
         if (!prev.isBreak) {
           // Work mode
-          if (timerMode === 'flow') {
-            // Flow mode: count up elapsed time
+          if (timerMode === 'flow' || timerMode === 'timer') {
+            // Flow/Timer mode: count up elapsed time
             const elapsedSec = Math.floor((now - prev.startTime) / 1000);
             if (elapsedSec !== prev.time) {
               return { ...prev, time: elapsedSec };
@@ -409,6 +409,21 @@ export function useTimer(
         workDuration: undefined,
         breakDuration: undefined,
       }));
+    } else if (timerMode === 'timer') {
+      // Timer mode: start counting up from 0 (like Flow but no breaks)
+      setTimerState(prev => ({
+        ...prev,
+        isRunning: true,
+        isBreak: false,
+        startTime: now,
+        sessionId,
+        time: 0,
+        targetTime: undefined,
+        currentSession: undefined,
+        totalSessions: undefined,
+        workDuration: undefined,
+        breakDuration: undefined,
+      }));
     } else {
       // Pomodoro mode: start countdown from work duration
       const workDuration = (settings.pomodoroWorkDuration ?? 25) * 60; // Convert to seconds
@@ -551,9 +566,48 @@ export function useTimer(
           }
         }
       }
+    } else if (timerMode === 'timer') {
+      // Timer mode: just stop and reset (no breaks)
+      setTimerState(prev => ({
+        ...prev,
+        isRunning: false,
+        isBreak: false,
+        time: 0,
+        targetTime: undefined,
+      }));
+      
+      playNotification();
+      if (settings.visualNotifications) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Timer stopped!', {
+            body: 'Session completed.',
+            icon: '/favicon.ico',
+          });
+        }
+      }
     } else {
-      // Pomodoro mode: timer will auto-transition to break or next session
-      // This is handled in the ticker effect
+      // Pomodoro mode: stopping interrupts the session, reset to beginning
+      setTimerState(prev => ({
+        ...prev,
+        isRunning: false,
+        isBreak: false,
+        time: 0,
+        targetTime: undefined,
+        currentSession: undefined,
+        totalSessions: undefined,
+        workDuration: undefined,
+        breakDuration: undefined,
+      }));
+      
+      playNotification();
+      if (settings.visualNotifications) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Pomodoro session interrupted!', {
+            body: 'Session was stopped before completion.',
+            icon: '/favicon.ico',
+          });
+        }
+      }
     }
   };
 
@@ -638,6 +692,9 @@ export function useTimer(
         const fixedMinutes = settings.flowBreakFixed ?? 10;
         return fixedMinutes * 60;
       }
+    } else if (timerMode === 'timer') {
+      // Timer mode: no breaks
+      return 0;
     } else {
       // Pomodoro mode: show break duration
       return (settings.pomodoroBreakDuration ?? 5) * 60;

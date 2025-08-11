@@ -88,11 +88,15 @@ export function useTasks() {
   };
 
   // Keep activeTask reference fresh when tasks array mutates (e.g., time updates)
+  // Also clear activeTask if the referenced task no longer exists
   useEffect(() => {
     if (activeTask) {
       const updatedActiveTask = tasks.find(task => task.id === activeTask.id);
       if (updatedActiveTask && updatedActiveTask !== activeTask) {
         setActiveTaskState(updatedActiveTask);
+      } else if (!updatedActiveTask) {
+        // Task was deleted, clear active task
+        setActiveTaskState(null);
       }
     }
   }, [tasks, activeTask, setActiveTaskState]);

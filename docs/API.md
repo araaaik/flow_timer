@@ -43,7 +43,7 @@ Declared centrally in [`src.App.tsx`](src/App.tsx).
   - colorTimer?: boolean
   - lightBg?: one of: gray-50 | gray-100 | gray-200 | gray-300 | gray-400 | gray-500 | slate-100 | neutral-100
   - darkBg?: one of: gray-700 | gray-800 | gray-900 | gray-950 | slate-900 | neutral-900 | black | neutral-950
-
+  - flowBreakSkipEnabled?: boolean
 ## Storage Keys
 
 - flow-settings: Settings JSON
@@ -176,6 +176,7 @@ Props:
 Controls:
 - Shadows toggle (flatMode)
 - Color Timer toggle (colorTimer)
+- Allow skip breaks toggle (flowBreakSkipEnabled)
 - Light/Dark background presets
 - Accent color picker
 - Visual and Audio notification toggles

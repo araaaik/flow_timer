@@ -12,6 +12,7 @@ import { useTasks } from './hooks/useTasks';
 import { useTheme } from './hooks/useTheme';
 import { useMusicPlayer } from './hooks/useMusicPlayer';
 import { getAccentHex, getAccentClasses } from './utils/colorSystem';
+import { runStorageCleanup } from './utils/storageCleanup';
 
 import { ColorSystemProvider, useColorSystemContext } from './contexts/ColorSystemContext';
 
@@ -75,8 +76,8 @@ export interface Settings {
   darkBg?: 'gray-700' | 'gray-800' | 'gray-900' | 'gray-950' | 'slate-900' | 'neutral-900' | 'black' | 'neutral-950';
   
   // Timer mode settings
-  /** Timer mode: 'flow' for Flowmodoro, 'pomodoro' for classic Pomodoro */
-  timerMode?: 'flow' | 'pomodoro';
+  /** Timer mode: 'flow' for Flowmodoro, 'pomodoro' for classic Pomodoro, 'timer' for simple timer */
+  timerMode?: 'flow' | 'pomodoro' | 'timer';
   
   // Flow mode settings
   /** When true, enables break after work session in Flow mode */
@@ -87,6 +88,8 @@ export interface Settings {
   flowBreakPercentage?: 10 | 15 | 20 | 25;
   /** Fixed break duration in minutes (5, 10, 20, 30) when using fixed type */
   flowBreakFixed?: 5 | 10 | 20 | 30;
+ /** When true, allows skipping break after work session in Flow mode */
+ flowBreakSkipEnabled?: boolean;
   
   // Pomodoro mode settings
   /** Work session duration in minutes */
@@ -185,6 +188,9 @@ function AppContent() {
       localStorage.removeItem('flow-active-task');
       localStorage.removeItem('flow-timer-state');
       window.location.reload();
+    } else {
+      // Run cleanup on app startup to fix orphaned references
+      runStorageCleanup();
     }
   }, []);
 
@@ -602,6 +608,12 @@ function AppContent() {
              }}
              onDeleteDay={(date) => {
                setSessions(prev => prev.filter(s => s.date !== date));
+             }}
+             onUpdateSessions={setSessions}
+             onUpdateTasks={(updatedTasks) => {
+               // Обновляем задачи через localStorage
+               localStorage.setItem('flow-tasks', JSON.stringify(updatedTasks));
+               window.location.reload(); // Перезагружаем для обновления состояния
              }}
              theme={theme}
              accentColor={accentColor}
