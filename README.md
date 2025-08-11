@@ -4,10 +4,30 @@ Lightweight productivity timer with tasks, goals, sessions history, theming and 
 
 English | [Русский](README.ru.md)
 
+## Development
+
 - Live dev: `npm run dev`
 - Production build: `npm run build`
 - Preview: `npm run preview`
 - Lint: `npm run lint`
+
+## Deployment
+
+### GitHub Pages (Automatic)
+
+The project is configured for automatic deployment to GitHub Pages:
+
+1. Push to `main` branch triggers automatic build and deploy
+2. Site will be available at `https://[username].github.io/[repository-name]/`
+3. GitHub Actions workflow handles the entire process
+
+### Manual Deploy
+
+```bash
+npm run deploy
+```
+
+This builds the project and pushes to `gh-pages` branch.
 
 ## Docs
 

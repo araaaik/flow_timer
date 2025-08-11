@@ -28,7 +28,7 @@ export const TAILWIND_ACCENT_COLORS: AccentColor[] = [
   { name: 'Sky 500', value: 'sky-500', tailwindClass: 'sky-500', hexValue: '#0ea5e9' },
   { name: 'Cyan 400', value: 'cyan-400', tailwindClass: 'cyan-400', hexValue: '#22d3ee' },
   { name: 'Cyan 500', value: 'cyan-500', tailwindClass: 'cyan-500', hexValue: '#06b6d4' },
-  
+
   // Greens
   { name: 'Emerald 400', value: 'emerald-400', tailwindClass: 'emerald-400', hexValue: '#34d399' },
   { name: 'Emerald 500', value: 'emerald-500', tailwindClass: 'emerald-500', hexValue: '#10b981' },
@@ -38,7 +38,7 @@ export const TAILWIND_ACCENT_COLORS: AccentColor[] = [
   { name: 'Teal 700', value: 'teal-700', tailwindClass: 'teal-700', hexValue: '#0f766e' },
   { name: 'Lime 400', value: 'lime-400', tailwindClass: 'lime-400', hexValue: '#a3e635' },
   { name: 'Lime 500', value: 'lime-500', tailwindClass: 'lime-500', hexValue: '#84cc16' },
-  
+
   // Reds/Pinks
   { name: 'Red 400', value: 'red-400', tailwindClass: 'red-400', hexValue: '#f87171' },
   { name: 'Red 500', value: 'red-500', tailwindClass: 'red-500', hexValue: '#ef4444' },
@@ -46,7 +46,7 @@ export const TAILWIND_ACCENT_COLORS: AccentColor[] = [
   { name: 'Rose 500', value: 'rose-500', tailwindClass: 'rose-500', hexValue: '#f43f5e' },
   { name: 'Pink 400', value: 'pink-400', tailwindClass: 'pink-400', hexValue: '#f472b6' },
   { name: 'Pink 500', value: 'pink-500', tailwindClass: 'pink-500', hexValue: '#ec4899' },
-  
+
   // Purples
   { name: 'Purple 400', value: 'purple-400', tailwindClass: 'purple-400', hexValue: '#c084fc' },
   { name: 'Purple 500', value: 'purple-500', tailwindClass: 'purple-500', hexValue: '#a855f7' },
@@ -54,7 +54,7 @@ export const TAILWIND_ACCENT_COLORS: AccentColor[] = [
   { name: 'Violet 500', value: 'violet-500', tailwindClass: 'violet-500', hexValue: '#8b5cf6' },
   { name: 'Indigo 400', value: 'indigo-400', tailwindClass: 'indigo-400', hexValue: '#818cf8' },
   { name: 'Indigo 500', value: 'indigo-500', tailwindClass: 'indigo-500', hexValue: '#6366f1' },
-  
+
   // Oranges/Yellows
   { name: 'Orange 400', value: 'orange-400', tailwindClass: 'orange-400', hexValue: '#fb923c' },
   { name: 'Orange 500', value: 'orange-500', tailwindClass: 'orange-500', hexValue: '#f97316' },
@@ -62,7 +62,7 @@ export const TAILWIND_ACCENT_COLORS: AccentColor[] = [
   { name: 'Amber 500', value: 'amber-500', tailwindClass: 'amber-500', hexValue: '#f59e0b' },
   { name: 'Yellow 400', value: 'yellow-400', tailwindClass: 'yellow-400', hexValue: '#facc15' },
   { name: 'Yellow 500', value: 'yellow-500', tailwindClass: 'yellow-500', hexValue: '#eab308' },
-  
+
   // Neutrals
   { name: 'Slate 600', value: 'slate-600', tailwindClass: 'slate-600', hexValue: '#475569' },
   { name: 'Slate 700', value: 'slate-700', tailwindClass: 'slate-700', hexValue: '#334155' },
@@ -113,15 +113,15 @@ export const getAccentClasses = (accentColor: string, customColors: AccentColor[
   // Check all colors (default + custom)
   const allColors = [...DEFAULT_ACCENT_COLORS, ...TAILWIND_ACCENT_COLORS, ...customColors];
   const color = allColors.find(c => c.value === accentColor);
-  
+
   if (color) {
     const baseClass = color.tailwindClass;
     const [colorName, shade] = baseClass.split('-');
     const shadeNum = parseInt(shade);
-    
+
     // Calculate hover shade (darker for most colors, lighter for very dark ones)
     let hoverShade = shadeNum >= 800 ? shadeNum - 100 : shadeNum + 100;
-    
+
     return {
       bg: `bg-${baseClass}`,
       hover: `hover:bg-${colorName}-${hoverShade}`,
@@ -147,7 +147,7 @@ export const getAccentClasses = (accentColor: string, customColors: AccentColor[
 export const getAccentHex = (accentColor: string, customColors: AccentColor[] = []): string => {
   const allColors = [...DEFAULT_ACCENT_COLORS, ...TAILWIND_ACCENT_COLORS, ...customColors];
   const color = allColors.find(c => c.value === accentColor);
-  
+
   return color?.hexValue || '#3b82f6'; // fallback to blue-500
 };
 
@@ -184,8 +184,16 @@ export const hexToRgb = (hex: string): { r: number; g: number; b: number } | nul
 export const isLightColor = (hex: string): boolean => {
   const rgb = hexToRgb(hex);
   if (!rgb) return false;
-  
+
   // Calculate luminance
   const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
   return luminance > 0.5;
 };
+
+/**
+ * Validate hex color format
+ */
+export const isValidHexColor = (color: string): boolean => {
+  return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color);
+};
+

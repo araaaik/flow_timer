@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Download, Trash2, Search, Calendar, BarChart3 } from 'lucide-react';
 import type { Task, Session } from '../App';
-import { useColorSystem } from '../hooks/useColorSystem';
+import { useColorSystemContext } from '../contexts/ColorSystemContext';
 import { getAccentHex } from '../utils/colorSystem';
 
 /**
@@ -49,7 +49,7 @@ function History({
   const [view, setView] = useState<'day' | 'week' | 'month'>('day');
   
   // Get hex value for current accent
-  const colorSystem = useColorSystem();
+  const colorSystem = useColorSystemContext();
   const accentHex = getAccentHex(accentColor, colorSystem.getAllAccentColors());
   const [searchTask, setSearchTask] = useState('');
 

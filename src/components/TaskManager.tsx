@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Plus, X, Clock, Target, BarChart3 } from 'lucide-react';
 import type { Task, Session } from '../App';
 import { getAccentClasses } from '../utils/colorSystem';
-import { useColorSystem } from '../hooks/useColorSystem';
+import { useColorSystemContext } from '../contexts/ColorSystemContext';
 import { getAccentHex } from '../utils/colorSystem';
 
 /**
@@ -57,7 +57,7 @@ function TaskManager({
   layout = 'full',
   onShowHistory
 }: TaskManagerProps & { isRunning?: boolean }) {
-  const colorSystem = useColorSystem();
+  const colorSystem = useColorSystemContext();
 
   
   // Get hex value for current accent

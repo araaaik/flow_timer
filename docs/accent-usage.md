@@ -1,142 +1,269 @@
-# Accent Color Usage Documentation
+# Accent Color System
 
-Purpose: a single place to understand and change how the “accent color” affects UI elements, without searching through code.
+This document describes how the accent color system works in the Flow Timer application.
 
-Key principles:
-- Source of truth: Settings in localStorage key `flow-settings` field `accentColor`.
-- Do not recolor neutral container/card backgrounds (except the Timer surface when Color Timer is ON).
-- Accent applies to interactive or emphasis elements (buttons, chips, indicators, progress, active rings, icons, selected states).
-- Implementation uses Tailwind class maps for all accents. For any custom hex accent, a small number of inline style hooks are used in specific spots.
-- **Settings Panel**: Uses centralized CSS variables (`--accent-color`) and standardized CSS classes for consistent styling.
+## Overview
 
-How to change the accent globally:
-- Prefer updating the Tailwind-based maps (class maps) where present.
-- If you need a custom hex for a given accent name (for example “green”), change the inline style hooks listed below.
-- Keep hover/transition classes from Tailwind to preserve interactivity, and layer inline styles only for the final color.
+The accent color system provides a centralized, reactive way to manage and apply accent colors throughout the application. It supports both predefined Tailwind CSS colors and custom user-defined colors with real-time updates across all components.
 
-Accent touchpoints by component
+## Architecture
 
-1) Timer ([src/components/Timer.tsx](src/components/Timer.tsx))
-- Start/Stop button
-  - Tailwind map for all accents; when Color Timer is OFF, a per-accent solid hex override is applied for all accent colors (not only green).
-- Estimated Break chip (visible while working)
-  - When Color Timer is OFF and in light theme, a per-accent tinted background and matching text color are applied for all accent colors.
+### Core Components
 
-2) Task Manager ([src/components/TaskManager.tsx](src/components/TaskManager.tsx))
-- Add task button(s) (both at top when empty and in the add form below the list)
-  - Tailwind map; optional inline style hook for custom hex background/border when button is enabled.
-- Active task highlight
-  - Tailwind ring map; optional inline style hook (boxShadow) for custom hex active ring.
-  - Special case: when accent is "black" and theme is dark, the active task gets a subtle gray outline (#d1d5db) for better integration on dark surfaces.
-- Today time badge (right side in each task row)
-  - Tailwind map; optional inline style hook to set custom hex background and maintain readable text.
-- Goal progress bar (inner bar)
-  - Tailwind map; optional inline style hook to set custom hex for the progress segment.
+1. **ColorSystemContext.tsx** - React Context provider for global color state management
+2. **colorSystem.ts** - Central color definitions and utilities
+3. **SettingsPanel.tsx** - UI for color selection and customization
 
-Notes: Neutral task containers remain theme surfaces; only accent rings/badges/bars change.
+### Color Types
 
-3) History ([src/components/History.tsx](src/components/History.tsx))
-Accent applies to:
-- Header icon
-- Active period tabs (Day/Week/Month)
-- **Statistics cards background** (Total Time, Sessions, Average, Longest)
-  - Cards use accent color as background with white text
-  - Labels use semi-transparent white (`text-white/80`)
-- Session duration text
-- Selected day tiles in week view
-Implementation: Tailwind class maps for all accents + optional inline style hooks for a custom hex.
+```typescript
+interface AccentColor {
+  name: string;           // Display name
+  value: string;          // Unique identifier
+  tailwindClass: string;  // Tailwind CSS class
+  hexValue: string;       // Hex color value
+  isCustom?: boolean;     // Whether it's a user-defined color
+}
+```
 
-4) Music Player ([src/components/MusicPlayer.tsx](src/components/MusicPlayer.tsx))
-- Left indicators
-  - Animated equalizer:
-    - When playing: 3-bar equalizer animates continuously with staggered keyframes (eq-bounce-a/b/c) and uses the current accent color (green uses #0f766e).
-    - When paused: bars are static in neutral gray (gray-400).
-  - Status dot:
-    - When playing: dot is colored with the current accent (green uses #0f766e) and may pulse.
-    - When paused: dot remains neutral gray (dark: #9ca3af, light: #9ca3af).
-  - Implementation: inline per-accent color map and conditional styles based on player state; accent is read from `flow-settings`.
-  - Volume control:
-    - The slider track active segment and thumb use the current accent color.
-    - Implemented via CSS variable `--slider-accent` set on the player root and used in slider thumb styles.
-    - The background gradient of the slider uses the resolved accent HEX for the filled portion.
-  - Stream tiles (selection states):
-    - Active tile border uses the accent color and increased thickness.
-    - An accent-colored translucent overlay is applied over the thumbnail when active.
-    - The “Active” badge uses the accent background.
+## Default Colors
 
-5) App ([src/App.tsx](src/App.tsx))
-- Header status dot (left of FLOW)
-Implementation:
-- When timer is running (work or break), dot uses the current accent color (project green #0f766e for green).
-- When timer is not running, dot is gray (light: #d1d5db, dark: #4b5563).
+The system includes 7 carefully selected default colors:
 
-6) Settings Panel ([src/components/SettingsPanel.tsx](src/components/SettingsPanel.tsx))
-- **Centralized accent color system**: Uses CSS variables for consistent styling
-  - `--accent-color`: Main accent color hex value
-  - `--accent-color-hover`: Slightly transparent version for hover states
-- **Standardized CSS classes**:
-  - `.settings-active-button`: Active menu buttons (Timer Mode, Break Type, etc.)
-  - `.settings-active-toggle`: Active toggle switches
-  - `.settings-action-button`: Action buttons (Save, Add, etc.)
-- **Benefits**: New settings elements automatically inherit correct accent colors without manual styling
-- **Implementation**: CSS variables are set on the main container and used by predefined classes
+- **Blue** (`blue-500`) - `#3b82f6`
+- **Purple** (`violet-500`) - `#8b5cf6` 
+- **Green** (`teal-700`) - `#0f766e`
+- **Red** (`red-500`) - `#ef4444`
+- **Orange** (`orange-500`) - `#f97316`
+- **Pink** (`pink-500`) - `#ec4899`
+- **Black** (`gray-900`) - `#111827`
 
-7) App ([src/App.tsx](src/App.tsx))
-- Timer surface when Color Timer is ON
-Implementation: Tailwind map for backgrounds; optional inline style hook for custom hex background and white text.
+## Context-Based Architecture
 
-Non-accent containers (unchanged)
-- Page background (controlled by per-theme settings lightBg/darkBg)
-- Card/container surfaces for Task Manager, History, Music Player
+The new system uses React Context for global state management, ensuring all components automatically update when colors change.
 
-Inline style hooks inventory (centralized reference)
-These are the exact code locations where custom per-accent hex overrides are applied (all accents supported; adjust values to change final rendering without touching Tailwind maps):
-- Timer
-  - Start/Stop button style override map (solidHex) in [src/components/Timer.tsx](src/components/Timer.tsx)
-  - Estimated Break chip tint/text map (chipHex) in [src/components/Timer.tsx](src/components/Timer.tsx)
-- Task Manager
-  - Add task button (enabled) background/border in [src/components/TaskManager.tsx](src/components/TaskManager.tsx)
-  - Active task ring (boxShadow) in [src/components/TaskManager.tsx](src/components/TaskManager.tsx) — includes special case: black accent on dark theme uses white ring for visibility.
-  - Today time badge background in [src/components/TaskManager.tsx](src/components/TaskManager.tsx)
-  - Progress bar inner segment background in [src/components/TaskManager.tsx](src/components/TaskManager.tsx)
-- History
-  - Header icon color, active tab background, statistics cards background, session duration, selected day accents in [src/components/History.tsx](src/components/History.tsx)
-- Music Player
-  - Playing indicator dot in [src/components/MusicPlayer.tsx](src/components/MusicPlayer.tsx)
-  - Volume slider accent (track + thumb) in [src/components/MusicPlayer.tsx](src/components/MusicPlayer.tsx)
-- App
-  - Timer surface background (Color Timer ON) in [src/App.tsx](src/App.tsx)
+### Provider Setup
 
-Recommended customization workflow
-1) Choose an accent name (e.g., “green”) or add a new one if extending the palette.
-2) Update Tailwind class maps where accents are mapped to classes (keeps hover/active states consistent).
-3) If you need a custom hex different from Tailwind’s, adjust the inline style hooks listed above for your accent name only.
-4) Verify contrast (white text on dark backgrounds) and keep hover/transition classes unchanged.
+The entire application is wrapped in `ColorSystemProvider`:
 
-Maintenance checklist
-- Keep accent changes scoped to accent elements; avoid changing neutral containers.
-- Preserve Tailwind hover/focus/transition classes; layer inline styles for color only.
-- Centralize any new inline hooks by updating this document with file references to maintain a single source of truth.
-- For Settings Panel: Use the centralized CSS classes (`.settings-active-button`, `.settings-active-toggle`, `.settings-action-button`) for automatic accent color application.
+```typescript
+function App() {
+  return (
+    <ColorSystemProvider>
+      <AppContent />
+    </ColorSystemProvider>
+  );
+}
+```
 
-## Centralized Settings Panel System
+### Using the Context
 
-The Settings Panel now uses a centralized approach for accent colors:
+```typescript
+import { useColorSystemContext } from '../contexts/ColorSystemContext';
+import { getAccentHex } from '../utils/colorSystem';
 
-**CSS Variables:**
-- `--accent-color`: Current accent color hex value
-- `--accent-color-hover`: Slightly transparent version for hover effects
+function MyComponent({ accentColor }) {
+  const colorSystem = useColorSystemContext();
+  
+  // Get hex value for CSS - automatically reactive
+  const accentHex = getAccentHex(accentColor, colorSystem.getAllAccentColors());
+  
+  return (
+    <div style={{ backgroundColor: accentHex }}>
+      Content
+    </div>
+  );
+}
+```
 
-**Standardized Classes:**
-- `.settings-active-button`: For active menu buttons (Timer Mode, Break Type, etc.)
-- `.settings-active-toggle`: For active toggle switches
-- `.settings-action-button`: For action buttons (Save, Add, etc.)
+## Custom Colors
 
-**Benefits:**
-- New settings elements automatically inherit correct accent colors
-- No need for manual inline styling
-- Consistent behavior across all settings components
-- Easy maintenance and updates
+Users can add custom colors through the Settings panel with immediate application:
 
-**Usage:**
-Simply apply the appropriate class to new settings elements, and they will automatically use the current accent color.
+1. Click the "+" button next to "Accent colors"
+2. Use the color picker or enter a hex value (# is automatically added)
+3. Provide a custom name (optional)
+4. Click "Add Color"
+5. **The color is immediately applied and available across all components**
+
+### Custom Color Features
+
+- **Instant Application**: New colors are automatically set as active
+- **Real-time Updates**: All components update immediately without page refresh
+- **Smart Validation**: Hex values are normalized (# added automatically)
+- **Persistent Storage**: Colors are saved to localStorage
+- **Edit & Delete**: Custom colors can be edited or removed
+
+## Implementation Details
+
+### Reactive State Management
+
+The Context provider manages state reactively:
+
+```typescript
+const [colorSystem, setColorSystem] = useState<ColorSystemState>(() => {
+  // Load from localStorage on initialization
+  const stored = localStorage.getItem('colorSystem');
+  return stored ? JSON.parse(stored) : defaultState;
+});
+
+// Auto-save to localStorage on every change
+useEffect(() => {
+  localStorage.setItem('colorSystem', JSON.stringify(colorSystem));
+}, [colorSystem]);
+```
+
+### Color Addition Flow
+
+1. User selects/enters color in Settings
+2. `addCustomAccentColor()` creates color object
+3. Context state updates immediately
+4. All subscribed components re-render automatically
+5. New color is set as active accent color
+
+### Color Storage Format
+
+```json
+{
+  "customAccentColors": [
+    {
+      "name": "Brand Blue",
+      "value": "custom_brandblue_1234567890",
+      "tailwindClass": "custom-brandblue_1234567890", 
+      "hexValue": "#1E40AF",
+      "isCustom": true
+    }
+  ],
+  "customLightBackgrounds": [],
+  "customDarkBackgrounds": []
+}
+```
+
+## Available Context Methods
+
+```typescript
+interface ColorSystemContextType {
+  // State
+  colorSystem: ColorSystemState;
+  
+  // Getters
+  getAllAccentColors: () => AccentColor[];
+  getAllLightBackgrounds: () => BackgroundColor[];
+  getAllDarkBackgrounds: () => BackgroundColor[];
+  
+  // Actions
+  addCustomAccentColor: (name: string, hexColor: string) => AccentColor | null;
+  removeAccentColor: (value: string) => boolean;
+  updateAccentColor: (value: string, name: string, hexColor?: string) => boolean;
+  // ... background methods
+}
+```
+
+## Usage Patterns
+
+### Basic Color Usage
+
+```typescript
+function MyComponent({ accentColor }) {
+  const colorSystem = useColorSystemContext();
+  const accentHex = getAccentHex(accentColor, colorSystem.getAllAccentColors());
+  
+  return <div style={{ color: accentHex }}>Content</div>;
+}
+```
+
+### Tailwind Classes
+
+```typescript
+function MyComponent({ accentColor }) {
+  const colorSystem = useColorSystemContext();
+  const classes = getAccentClasses(accentColor, colorSystem.getAllAccentColors());
+  
+  return <button className={`${classes.bg} ${classes.hover}`}>Button</button>;
+}
+```
+
+### Adding Custom Colors Programmatically
+
+```typescript
+function MyComponent() {
+  const colorSystem = useColorSystemContext();
+  
+  const addBrandColor = () => {
+    const newColor = colorSystem.addCustomAccentColor('Brand Color', '#1E40AF');
+    if (newColor) {
+      // Color added successfully and available immediately
+      console.log('Added:', newColor.value);
+    }
+  };
+  
+  return <button onClick={addBrandColor}>Add Brand Color</button>;
+}
+```
+
+## Key Improvements
+
+### Immediate Reactivity
+- No page refresh needed
+- All components update instantly
+- Real-time color preview
+
+### Smart Input Handling
+- Automatic hex validation and normalization
+- User-friendly error handling
+- Flexible input formats (with or without #)
+
+### Persistent State
+- Automatic localStorage synchronization
+- Cross-session persistence
+- Reliable state recovery
+
+## Migration from Old System
+
+If migrating from the old hook-based system:
+
+1. **Replace hook import**:
+   ```typescript
+   // Old
+   import { useColorSystem } from '../hooks/useColorSystem';
+   
+   // New
+   import { useColorSystemContext } from '../contexts/ColorSystemContext';
+   ```
+
+2. **Update hook usage**:
+   ```typescript
+   // Old
+   const colorSystem = useColorSystem();
+   
+   // New  
+   const colorSystem = useColorSystemContext();
+   ```
+
+3. **Ensure Context provider** is wrapping your app
+4. **Remove any manual force update logic** - now automatic
+
+## Best Practices
+
+1. **Always use the Context** - Don't bypass the color system
+2. **Pass custom colors to utilities** - Include `getAllAccentColors()` result
+3. **Handle edge cases** - System provides safe fallbacks
+4. **Test with custom colors** - Verify components work with user colors
+5. **Leverage reactivity** - Trust the automatic updates
+
+## Troubleshooting
+
+### Colors not updating immediately
+- Verify you're using `useColorSystemContext()` 
+- Check that the Context provider wraps your component tree
+- Ensure you're passing `getAllAccentColors()` to utility functions
+
+### Custom colors not persisting
+- Check localStorage permissions
+- Verify JSON serialization isn't failing
+- Look for console errors during save/load
+
+### Performance concerns
+- The Context system is optimized for performance
+- Only components using colors re-render on changes
+- localStorage operations are batched and efficient

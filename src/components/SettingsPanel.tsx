@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Bell, BellOff, Palette, Layers, Brush, Music, Plus, Edit3, Trash2, Check, X, Eye, EyeOff, Image as ImageIcon, Timer, CheckSquare, Sun, Moon, Minus } from 'lucide-react';
+import { HexColorPicker } from 'react-colorful';
 import type { Settings } from '../App';
 import { useMusicPlayer } from '../hooks/useMusicPlayer';
-import { useColorSystem } from '../hooks/useColorSystem';
-import { generateRandomColor, getAccentHex, isLightColor } from '../utils/colorSystem';
+import { useColorSystemContext } from '../contexts/ColorSystemContext';
+import { getAccentHex, isLightColor } from '../utils/colorSystem';
 
 /**
  * SettingsPanel.tsx
@@ -354,25 +355,54 @@ interface ColorManagerProps {
 }
 
 function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerProps) {
-  const colorSystem = useColorSystem();
-  const [showTailwindPicker, setShowTailwindPicker] = useState(false);
-  const [isAddingCustom, setIsAddingCustom] = useState(false);
+  const colorSystem = useColorSystemContext();
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [selectedColor, setSelectedColor] = useState('#3b82f6');
+  const [colorName, setColorName] = useState('');
+  const [editingColor, setEditingColor] = useState<string | null>(null);
 
   const allColors = colorSystem.getAllAccentColors();
-  const tailwindColors = colorSystem.getAllTailwindColors();
 
-  const handleAddTailwindColor = (color: AccentColor) => {
-    const success = colorSystem.addTailwindAccentColor(color);
-    if (success) {
-      setShowTailwindPicker(false);
+  const handleColorSelect = (color: string) => {
+    const name = colorName.trim() || `Custom Color ${Date.now()}`;
+    const newColor = colorSystem.addCustomAccentColor(name, color);
+    if (newColor) {
+      // Immediately set the new color as active
+      onUpdateSettings({ accentColor: newColor.value });
+      
+      setShowColorPicker(false);
+      setSelectedColor('#3b82f6');
+      setColorName('');
     }
   };
 
-  const handleAddRandomColor = () => {
-    const randomColor = generateRandomColor();
-    const success = colorSystem.addCustomAccentColor(randomColor);
-    if (success) {
-      // Color added successfully
+  const handleEditColor = (colorValue: string) => {
+    const color = allColors.find(c => c.value === colorValue);
+    if (color && color.isCustom) {
+      setEditingColor(colorValue);
+      setSelectedColor(color.hexValue);
+      setColorName(color.name);
+      setShowColorPicker(true);
+    }
+  };
+
+  const handleUpdateColor = () => {
+    if (editingColor) {
+      // Update existing color
+      const name = colorName.trim() || `Custom Color ${Date.now()}`;
+      const success = colorSystem.updateAccentColor(editingColor, name, selectedColor);
+      if (success) {
+        // If this is the currently selected color, keep it selected
+        if (settings.accentColor === editingColor) {
+          onUpdateSettings({ accentColor: editingColor });
+        }
+        setEditingColor(null);
+        setShowColorPicker(false);
+        setSelectedColor('#3b82f6');
+        setColorName('');
+      }
+    } else {
+      handleColorSelect(selectedColor);
     }
   };
 
@@ -385,64 +415,97 @@ function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerP
             Accent colors
           </span>
         </div>
-        <div className="flex gap-1">
-          <button
-            onClick={() => setShowTailwindPicker(!showTailwindPicker)}
-            className={`p-1 rounded transition-colors ${
-              theme === 'dark'
-                ? 'hover:bg-gray-600 text-gray-400 hover:text-gray-300'
-                : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
-            }`}
-            title="Browse Tailwind colors"
-          >
-            <Palette size={14} />
-          </button>
-          <button
-            onClick={handleAddRandomColor}
-            className={`p-1 rounded transition-colors ${
-              theme === 'dark'
-                ? 'hover:bg-gray-600 text-gray-400 hover:text-gray-300'
-                : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
-            }`}
-            title="Add random color"
-          >
-            <Plus size={14} />
-          </button>
-        </div>
+        <button
+          onClick={() => setShowColorPicker(!showColorPicker)}
+          className={`p-1 rounded transition-colors ${
+            theme === 'dark'
+              ? 'hover:bg-gray-600 text-gray-400 hover:text-gray-300'
+              : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+          }`}
+          title="Add custom color"
+        >
+          <Plus size={14} />
+        </button>
       </div>
 
-      {/* Tailwind Color Picker */}
-      {showTailwindPicker && (
-        <div className={`p-3 rounded-lg border ${
+      {/* Color Picker */}
+      {showColorPicker && (
+        <div className={`p-4 rounded-lg border ${
           theme === 'dark' ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'
         }`}>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <h4 className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-              Choose from Tailwind Colors
+              {editingColor ? 'Edit Custom Color' : 'Add Custom Color'}
             </h4>
-            <div className="grid grid-cols-8 gap-2 max-h-48 overflow-y-auto">
-              {tailwindColors.map((color) => (
+            <div className="flex flex-col items-center space-y-4">
+              <HexColorPicker 
+                color={selectedColor} 
+                onChange={setSelectedColor}
+                style={{ width: '200px', height: '200px' }}
+              />
+              <div className="w-full space-y-3">
+                <input
+                  type="text"
+                  placeholder="Color name (e.g., 'Brand Blue')"
+                  value={colorName}
+                  onChange={(e) => setColorName(e.target.value)}
+                  className={`w-full px-3 py-2 rounded-lg text-sm ${
+                    theme === 'dark' 
+                      ? 'bg-gray-600 text-white border-gray-500' 
+                      : 'bg-white text-gray-900 border-gray-300'
+                  } border focus:outline-none focus:ring-2 focus:ring-opacity-50`}
+                />
+                <div className="flex items-center space-x-3">
+                  <div 
+                    className="w-8 h-8 rounded-lg border-2 border-gray-300 flex-shrink-0"
+                    style={{ backgroundColor: selectedColor }}
+                  />
+                  <input
+                    type="text"
+                    value={selectedColor}
+                    onChange={(e) => {
+                      let value = e.target.value;
+                      // Auto-add # if user starts typing without it
+                      if (value.length === 1 && value !== '#' && /[0-9a-fA-F]/.test(value)) {
+                        value = '#' + value;
+                      }
+                      setSelectedColor(value);
+                    }}
+                    className={`flex-1 px-3 py-2 rounded text-sm font-mono ${
+                      theme === 'dark' 
+                        ? 'bg-gray-600 text-white border-gray-500' 
+                        : 'bg-white text-gray-900 border-gray-300'
+                    } border focus:outline-none focus:ring-2 focus:ring-opacity-50`}
+                    placeholder="#000000"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
                 <button
-                  key={color.value}
-                  onClick={() => handleAddTailwindColor(color)}
-                  className="group relative w-8 h-8 rounded-lg border-2 border-transparent hover:border-gray-400 transition-all"
-                  style={{ backgroundColor: color.hexValue }}
-                  title={color.name}
+                  onClick={handleUpdateColor}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium settings-action-button"
                 >
-                  <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="text-xs whitespace-nowrap bg-black text-white px-1 py-0.5 rounded">
-                      {color.name}
-                    </div>
-                  </div>
+                  <Check size={12} />
+                  {editingColor ? 'Update' : 'Add'} Color
                 </button>
-              ))}
+                <button
+                  onClick={() => {
+                    setShowColorPicker(false);
+                    setEditingColor(null);
+                    setColorName('');
+                    setSelectedColor('#3b82f6');
+                  }}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium ${
+                    theme === 'dark'
+                      ? 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  <X size={12} />
+                  Cancel
+                </button>
+              </div>
             </div>
-            <button
-              onClick={() => setShowTailwindPicker(false)}
-              className={`text-xs ${theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Close
-            </button>
           </div>
         </div>
       )}
@@ -467,15 +530,32 @@ function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerP
               title={color.name}
             />
             {color.isCustom && (
-              <button
-                onClick={() => colorSystem.removeAccentColor(color.value)}
-                className={`absolute -top-1 -right-1 w-5 h-5 rounded-full ${
-                  isLightColor(color.hexValue) ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'
-                } opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center`}
-                title="Remove color"
-              >
-                <Minus size={10} />
-              </button>
+              <div className="absolute -top-1 -right-1 flex gap-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditColor(color.value);
+                  }}
+                  className={`w-5 h-5 rounded-full ${
+                    isLightColor(color.hexValue) ? 'bg-blue-600 text-white' : 'bg-blue-400 text-white'
+                  } opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center`}
+                  title="Edit color"
+                >
+                  <Edit3 size={8} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    colorSystem.removeAccentColor(color.value);
+                  }}
+                  className={`w-5 h-5 rounded-full ${
+                    isLightColor(color.hexValue) ? 'bg-red-600 text-white' : 'bg-red-400 text-white'
+                  } opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center`}
+                  title="Remove color"
+                >
+                  <Minus size={8} />
+                </button>
+              </div>
             )}
           </div>
         ))}
@@ -485,7 +565,7 @@ function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerP
 }
 
 function BackgroundManager({ theme, settings, onUpdateSettings, type }: ColorManagerProps & { type: 'light' | 'dark' }) {
-  const colorSystem = useColorSystem();
+  const colorSystem = useColorSystemContext();
   const [isAdding, setIsAdding] = useState(false);
   const [newBgLabel, setNewBgLabel] = useState('');
   const [newBgClass, setNewBgClass] = useState('');
@@ -624,7 +704,7 @@ function BackgroundManager({ theme, settings, onUpdateSettings, type }: ColorMan
 }
 
 function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps) {
-  const colorSystem = useColorSystem();
+  const colorSystem = useColorSystemContext();
   
   // Get hex value for the current accent color
   const accentHex = getAccentHex(settings.accentColor, colorSystem.getAllAccentColors());

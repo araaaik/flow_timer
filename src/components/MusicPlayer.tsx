@@ -1,7 +1,7 @@
 import React from 'react';
 import { Play, Pause, Volume2, VolumeX, ChevronUp, ChevronDown } from 'lucide-react';
 import { useMusicPlayer } from '../hooks/useMusicPlayer';
-import { useColorSystem } from '../hooks/useColorSystem';
+import { useColorSystemContext } from '../contexts/ColorSystemContext';
 
 interface MusicPlayerProps {
   theme: 'light' | 'dark';
@@ -39,7 +39,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
     isStreamHidden
   } = useMusicPlayer();
   
-  const colorSystem = useColorSystem();
+  const colorSystem = useColorSystemContext();
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   // Read accentColor from settings to keep component independent of props drilling

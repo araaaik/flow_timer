@@ -11,8 +11,9 @@ import { useTimer } from './hooks/useTimer';
 import { useTasks } from './hooks/useTasks';
 import { useTheme } from './hooks/useTheme';
 import { useMusicPlayer } from './hooks/useMusicPlayer';
-import { useColorSystem } from './hooks/useColorSystem';
 import { getAccentHex, getAccentClasses } from './utils/colorSystem';
+
+import { ColorSystemProvider, useColorSystemContext } from './contexts/ColorSystemContext';
 
 /**
  * Task
@@ -103,7 +104,7 @@ export interface Settings {
  * - Layout: widget toggle and compact/full layout
  * - Overlays: History modal, Settings panel, optional MusicPlayer block
  */
-function App() {
+function AppContent() {
   const [isWidget, setIsWidget] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -140,7 +141,7 @@ function App() {
   });
 
   const { theme, toggleTheme, accentColor } = useTheme(settings.theme, settings.accentColor);
-  const colorSystem = useColorSystem();
+  const colorSystem = useColorSystemContext();
 
   // Ensure UI re-renders immediately when theme toggles without page reload
   useEffect(() => {
@@ -588,6 +589,8 @@ function App() {
           </div>
         )}
 
+
+
                  {/* History Modal */}
          {showHistory && (
            <History
@@ -606,6 +609,14 @@ function App() {
          )}
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ColorSystemProvider>
+      <AppContent />
+    </ColorSystemProvider>
   );
 }
 

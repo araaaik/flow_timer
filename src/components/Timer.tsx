@@ -2,7 +2,7 @@ import React from 'react';
 import { Play, Pause, RotateCcw } from 'lucide-react';
 import type { Task, Settings } from '../App';
 
-import { useColorSystem } from '../hooks/useColorSystem';
+import { useColorSystemContext } from '../contexts/ColorSystemContext';
 import { getAccentHex } from '../utils/colorSystem';
 
 /**
@@ -72,7 +72,7 @@ function Timer({
   isWidget,
   settings
 }: TimerProps) {
-  const colorSystem = useColorSystem();
+  const colorSystem = useColorSystemContext();
   
   // Get hex value for current accent
   const accentHex = getAccentHex(accentColor, colorSystem.getAllAccentColors());

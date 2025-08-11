@@ -4,8 +4,7 @@ import react from '@vitejs/plugin-react';
 // Configure base for GitHub Pages:
 // - For project pages (https://USER.github.io/REPO), set base to '/REPO/'.
 // - For user/organization pages (https://USER.github.io), set base to '/'.
-// You can set REPO name via env VITE_GH_PAGES_BASE, or hardcode below.
-const repo = process.env.VITE_GH_PAGES_BASE || ''; // e.g. 'your-repo-name'
+const repo = process.env.VITE_GH_PAGES_BASE || process.env.GITHUB_REPOSITORY?.split('/')[1] || '';
 const base = repo ? `/${repo}/` : '/';
 
 // https://vitejs.dev/config/
