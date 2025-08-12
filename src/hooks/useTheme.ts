@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 
 export function useTheme(theme: 'light' | 'dark', accentColor: string) {
   const applyThemeAttribute = (t: 'light' | 'dark') => {
-    const root = document.documentElement; // <html>
+    const root = document.documentElement; // html element
     root.setAttribute('data-theme', t);
     root.classList.toggle('dark', t === 'dark');
   };

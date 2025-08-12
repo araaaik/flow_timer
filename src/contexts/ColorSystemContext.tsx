@@ -25,10 +25,6 @@ interface ColorSystemContextType {
   addCustomAccentColor: (name: string, hexColor: string) => AccentColor | null;
   removeAccentColor: (value: string) => boolean;
   updateAccentColor: (value: string, name: string, hexColor?: string) => boolean;
-  addLightBackground: (label: string, className: string) => boolean;
-  removeLightBackground: (key: string) => boolean;
-  addDarkBackground: (label: string, className: string) => boolean;
-  removeDarkBackground: (key: string) => boolean;
 }
 
 const ColorSystemContext = createContext<ColorSystemContextType | undefined>(undefined);
@@ -62,18 +58,23 @@ export const ColorSystemProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const getAllLightBackgrounds = (): BackgroundColor[] => {
-    return [...DEFAULT_LIGHT_BACKGROUNDS, ...colorSystem.customLightBackgrounds];
+    return DEFAULT_LIGHT_BACKGROUNDS;
   };
 
   const getAllDarkBackgrounds = (): BackgroundColor[] => {
-    return [...DEFAULT_DARK_BACKGROUNDS, ...colorSystem.customDarkBackgrounds];
+    return DEFAULT_DARK_BACKGROUNDS;
   };
 
   // Actions
   const addCustomAccentColor = (name: string, hexColor: string): AccentColor | null => {
     const normalizedHex = hexColor.startsWith('#') ? hexColor : `#${hexColor}`;
-    
+
     if (!isValidHexColor(normalizedHex)) {
+      return null;
+    }
+
+    if (colorSystem.customAccentColors.length >= 5) {
+      //  Ideally, display an error message here, but I can't directly.
       return null;
     }
 
@@ -96,7 +97,11 @@ export const ColorSystemProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const removeAccentColor = (value: string): boolean => {
     const colorToRemove = colorSystem.customAccentColors.find(c => c.value === value);
-    if (!colorToRemove || !colorToRemove.isCustom) {
+    if (!colorToRemove) {
+      return false;
+    }
+
+    if (!colorToRemove.isCustom) {
       return false;
     }
 
@@ -147,75 +152,7 @@ export const ColorSystemProvider: React.FC<{ children: ReactNode }> = ({ childre
     return true;
   };
 
-  const addLightBackground = (label: string, className: string): boolean => {
-    if (!className.startsWith('bg-')) {
-      return false;
-    }
 
-    const key = generateColorValue(label);
-    const newBackground: BackgroundColor = {
-      key,
-      cls: className,
-      label: label.trim(),
-      isCustom: true
-    };
-
-    setColorSystem(prev => ({
-      ...prev,
-      customLightBackgrounds: [...prev.customLightBackgrounds, newBackground]
-    }));
-
-    return true;
-  };
-
-  const removeLightBackground = (key: string): boolean => {
-    const backgroundToRemove = colorSystem.customLightBackgrounds.find(b => b.key === key);
-    if (!backgroundToRemove || !backgroundToRemove.isCustom) {
-      return false;
-    }
-
-    setColorSystem(prev => ({
-      ...prev,
-      customLightBackgrounds: prev.customLightBackgrounds.filter(b => b.key !== key)
-    }));
-
-    return true;
-  };
-
-  const addDarkBackground = (label: string, className: string): boolean => {
-    if (!className.startsWith('bg-')) {
-      return false;
-    }
-
-    const key = generateColorValue(label);
-    const newBackground: BackgroundColor = {
-      key,
-      cls: className,
-      label: label.trim(),
-      isCustom: true
-    };
-
-    setColorSystem(prev => ({
-      ...prev,
-      customDarkBackgrounds: [...prev.customDarkBackgrounds, newBackground]
-    }));
-
-    return true;
-  };
-
-  const removeDarkBackground = (key: string): boolean => {
-    const backgroundToRemove = colorSystem.customDarkBackgrounds.find(b => b.key === key);
-    if (!backgroundToRemove || !backgroundToRemove.isCustom) {
-      return false;
-    }
-
-    setColorSystem(prev => ({
-      ...prev,
-      customDarkBackgrounds: prev.customDarkBackgrounds.filter(b => b.key !== key)
-    }));
-
-    return true;
-  };
 
   const value: ColorSystemContextType = {
     colorSystem,
@@ -225,10 +162,6 @@ export const ColorSystemProvider: React.FC<{ children: ReactNode }> = ({ childre
     addCustomAccentColor,
     removeAccentColor,
     updateAccentColor,
-    addLightBackground,
-    removeLightBackground,
-    addDarkBackground,
-    removeDarkBackground,
   };
 
   return (

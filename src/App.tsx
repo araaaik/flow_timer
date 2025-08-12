@@ -41,14 +41,14 @@ export interface Session {
   id: string;
   taskId: string;
   taskName: string;
-  /** ISO start timestamp */
-  startTime: string;
-  /** ISO end timestamp */
-  endTime: string;
   /** Worked duration in seconds */
   duration: number;
   /** Human-readable date key (Date.toDateString) for grouping */
   date: string;
+  /** ISO timestamp when session started */
+  startTime?: string;
+  /** ISO timestamp when session ended */
+  endTime?: string;
 }
 
 /**
@@ -124,12 +124,11 @@ function AppContent() {
     theme: 'light',
     accentColor: 'blue-500',
     flatMode: false,
-    colorTimer: false,
-    showTasks: true,
     requireTaskSelection: true,
     showMusicPlayer: true,
-    lightBg: 'gray-50',
-    darkBg: 'gray-900',
+    showTasks: true,
+    lightBg: 'gray-200',
+    darkBg: 'gray-700',
     // Timer mode defaults
     timerMode: 'flow',
     // Flow mode defaults
@@ -205,7 +204,7 @@ function AppContent() {
     setSettings(prev => ({ ...prev, ...newSettings }));
   };
 
-  const todaysSessions = sessions.filter(session => 
+  const todaysSessions = (Array.isArray(sessions) ? sessions : []).filter(session =>
     session.date === new Date().toDateString()
   );
 
@@ -595,12 +594,10 @@ function AppContent() {
           </div>
         )}
 
-
-
                  {/* History Modal */}
          {showHistory && (
            <History
-             sessions={sessions}
+             sessions={Array.isArray(sessions) ? sessions : []}
              tasks={tasks}
              onClose={() => setShowHistory(false)}
              onDeleteSession={(sessionId) => {
@@ -611,9 +608,9 @@ function AppContent() {
              }}
              onUpdateSessions={setSessions}
              onUpdateTasks={(updatedTasks) => {
-               // Обновляем задачи через localStorage
+               // Update tasks via localStorage
                localStorage.setItem('flow-tasks', JSON.stringify(updatedTasks));
-               window.location.reload(); // Перезагружаем для обновления состояния
+               window.location.reload(); // Reload to update state
              }}
              theme={theme}
              accentColor={accentColor}

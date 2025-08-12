@@ -192,7 +192,7 @@ function TaskManager({
 
   const handleContainerClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
-    // Игнорируем клики по интерактивным элементам и по самим задачам
+    // Ignore clicks on interactive elements and the tasks themselves
     const isInteractive = Boolean(target.closest('button, input, select, textarea, a, [role="button"], [data-no-clear]'));
     const isInsideTaskItem = Boolean(target.closest('[data-task-item]'));
     if (!isInteractive && !isInsideTaskItem) {
@@ -245,26 +245,43 @@ function TaskManager({
 
       <div className="space-y-3">
         {tasks.length === 0 ? (
-          <div className={`text-center py-8 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-            <Clock size={32} className="mx-auto mb-2 opacity-50" />
-            <p>No tasks yet. Add one to get started!</p>
+          <div className={`py-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+            <button
+              onClick={handleExpand}
+              className={`w-full flex items-center justify-center gap-2 py-4 rounded-lg border-2 border-dashed transition-all duration-240 ease-out-smooth ${
+                theme === 'dark'
+                  ? 'border-gray-600 hover:border-gray-500 hover:bg-gray-700/20 text-gray-400 hover:text-gray-300'
+                  : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Plus size={18} />
+              <span className="text-sm">Add task</span>
+            </button>
           </div>
         ) : (
           <>
-            {tasks.map((task) => {
+            {tasks.filter((task) => {
+              // Only show tasks that have today's sessions or were created today
+              const todayStr = new Date().toDateString();
+              const createdToday = new Date(task.createdAt).toDateString() === todayStr;
+              const hasTodaySessions = Array.isArray(sessions) && 
+                (sessions as Session[]).some(s => s.taskId === task.id && s.date === todayStr);
+              
+              return createdToday || hasTodaySessions;
+            }).map((task) => {
               const showBadge = Array.isArray(sessions);
               const todayStr = new Date().toDateString();
 
-              // Base = accumulated saved sessions for today
+              // Base = Accumulated saved sessions for today
               const baseToday = showBadge
                 ? (sessions as Session[])
                     .filter(s => s.taskId === task.id && s.date === todayStr)
                     .reduce((sum, s) => sum + s.duration, 0)
                 : 0;
 
-              // If this is the active task and timer is running, add the currently elapsed live seconds
-              // Live increment = activeTask.timeSpent since start is not tracked here, so approximate by the running timer hint:
-              // We piggyback on localStorage 'flow-timer-state' if present to detect running elapsed; otherwise show baseToday.
+              // If this is the active task and timer is running, add elapsed live seconds
+              // Live increment = Time spent on activeTask since start is not tracked here, so approximate by the running timer hint:
+              // We use localStorage 'flow-timer-state' to detect running elapsed; otherwise show baseToday.
               let liveExtra = 0;
               try {
                 const raw = localStorage.getItem('flow-timer-state');
@@ -298,14 +315,14 @@ function TaskManager({
                   key={task.id}
                   data-task-item
                   onClick={() => {
-                    if ((TaskManager as any).isRunningGlobal) return;
+                    if ((TaskManager).isRunningGlobal) return;
                     if (activeTask?.id === task.id) {
                       onSelectTask(null);
                     } else {
                       onSelectTask(task);
                     }
                   }}
-                  className={`rounded-lg animate-fade-in-up ${((TaskManager as any).isRunningGlobal ? 'cursor-not-allowed opacity-70' : 'cursor-pointer')} transition-all duration-240 ease-out-smooth ${
+                  className={`rounded-lg animate-fade-in-up ${((TaskManager).isRunningGlobal ? 'cursor-not-allowed opacity-70' : 'cursor-pointer')} transition-all duration-240 ease-out-smooth ${
                    activeTask?.id === task.id
                      ? 'task-accent-ring'
                      : theme === 'dark'
@@ -313,9 +330,9 @@ function TaskManager({
                        : 'border border-gray-200 bg-gray-50 hover:bg-gray-100'
                 }`}
               >
-                  {/* Two-row layout per spec when goal exists; otherwise keep current row */}
+                  {/* Two-row layout: goal exists - two rows, else single row */}
                   <div className="px-3 py-2 min-h-10 transition-colors duration-240 ease-out-smooth">
-                    {/* Row 1: name left, today's badge and delete on right */}
+                    {/* Row 1: name, today's badge, delete */}
                     <div className="flex items-center justify-between">
                       <div className="min-w-0 pr-2">
                         <span className={`font-semibold truncate transition-colors duration-240 ease-out-smooth ${
@@ -326,7 +343,7 @@ function TaskManager({
                           {task.name}
                         </span>
 
-                        {/* Removed left-side today's time badge to avoid duplication; it will be shown on the right only */}
+                        {/* Removed left-side badge, shown on right */}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {showBadge && (
@@ -354,7 +371,7 @@ function TaskManager({
                       </div>
                     </div>
 
-                    {/* Row 2: full-width progress bar if goal is set */}
+                    {/* Row 2: progress bar if goal is set */}
                    {hasGoal && (
                       <div className="mt-2">
                         <div className={`w-full h-1.5 rounded-full transition-colors duration-240 ease-out-smooth ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'}`}>
@@ -381,8 +398,9 @@ function TaskManager({
         )}
       </div>
 
-      {/* Add Task Form - Positioned after task list */}
-      <div className="mt-3" data-no-clear>
+      {/* Add Task Form - only show when there are tasks */}
+      {tasks.length > 0 && (
+        <div className="mt-3" data-no-clear>
         {!isExpanded ? (
           <button
             onClick={handleExpand}
@@ -398,7 +416,7 @@ function TaskManager({
         ) : (
           <div className="space-y-2">
             {layout === 'full' ? (
-              /* Full layout - adaptive to screen width */
+              /* Full layout: adaptive to screen width */
               <div className={`rounded-lg border transition-colors duration-240 ease-out-smooth ${
                 theme === 'dark'
                   ? 'border-gray-600 bg-gray-700/30'
@@ -642,6 +660,113 @@ function TaskManager({
           </div>
         )}
       </div>
+      )}
+
+      {/* Expanded form for empty state */}
+      {tasks.length === 0 && isExpanded && (
+        <div className="mt-4" data-no-clear>
+          <div className="space-y-2">
+            <div className={`rounded-lg border transition-colors duration-240 ease-out-smooth ${
+              theme === 'dark'
+                ? 'border-gray-600 bg-gray-700/30'
+                : 'border-gray-200 bg-gray-50/50'
+            }`}>
+              <div className="px-3 py-2">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={newTaskName}
+                  onChange={(e) => setNewTaskName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddTask();
+                    if (e.key === 'Escape') handleCollapse();
+                  }}
+                  placeholder="Task name..."
+                  maxLength={50}
+                  className={`w-full bg-transparent text-sm font-semibold transition-colors duration-240 ease-out-smooth ${
+                    theme === 'dark' ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'
+                  } focus:outline-none`}
+                />
+              </div>
+
+              <div className="px-3 py-2 border-t border-gray-300 dark:border-gray-600 flex items-center justify-between">
+                <button
+                  onClick={handleCollapse}
+                  className={`px-2 py-1 text-xs rounded-lg transition-colors duration-240 ease-out-smooth ${
+                    theme === 'dark'
+                      ? 'text-gray-400 hover:bg-gray-600 hover:text-gray-300'
+                      : 'text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+                  }`}
+                >
+                  Cancel
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={newTaskTime}
+                    onChange={(e) => setNewTaskTime(e.target.value)}
+                    className={`px-3 py-1 text-xs rounded-lg min-w-[70px] transition-colors duration-240 ease-out-smooth ${
+                      theme === 'dark'
+                        ? 'bg-gray-600 border-gray-500 text-white'
+                        : 'bg-white border-gray-300 text-gray-700'
+                    } border focus:outline-none shadow-sm`}
+                  >
+                    <option value="">Goal</option>
+                    <option value="30">30m</option>
+                    <option value="60">1h</option>
+                    <option value="90">1.5h</option>
+                    <option value="120">2h</option>
+                    <option value="180">3h</option>
+                    <option value="240">4h</option>
+                    <option value="300">5h</option>
+                    <option value="360">6h</option>
+                  </select>
+
+                  <button
+                    onClick={handleAddTask}
+                    disabled={!newTaskName.trim()}
+                    className={`px-4 py-1.5 text-sm rounded-lg font-medium transition-all duration-240 ease-out-smooth shadow-sm hover:shadow-md flex items-center justify-center ${
+                      newTaskName.trim()
+                        ? 'task-accent-bg'
+                        : `${theme === 'dark' ? 'bg-gray-600 text-gray-400' : 'bg-gray-200 text-gray-500'} cursor-not-allowed`
+                    }`}
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Suggestions for empty state */}
+            {newTaskName && filteredSuggestions.length > 0 && (
+              <div className={`rounded-lg border shadow-sm ${
+                theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
+              }`}>
+                {filteredSuggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setNewTaskName(suggestion);
+                      inputRef.current?.focus();
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm transition-colors duration-240 ease-out-smooth ${
+                      index === 0 ? 'rounded-t-lg' : ''
+                    } ${
+                      index === filteredSuggestions.length - 1 ? 'rounded-b-lg' : ''
+                    } ${
+                      theme === 'dark'
+                        ? 'text-gray-300 hover:bg-gray-600'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
     </>
   );

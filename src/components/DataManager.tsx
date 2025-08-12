@@ -99,24 +99,44 @@ const DataManager: React.FC<DataManagerProps> = ({
       // Replace all sessions with imported ones
       onUpdateSessions(importedSessions);
 
-      // Create tasks from imported sessions
+      // Create tasks from imported sessions with correct timeSpent and creation date
       const taskNames = new Set(importedSessions.map(s => s.taskName));
-      const newTasks = Array.from(taskNames).map(name => ({
-        id: `task-${name.toLowerCase().replace(/\s+/g, '-')}`,
-        name,
-        timeSpent: 0,
-        createdAt: new Date().toISOString()
-      }));
+      const newTasks = Array.from(taskNames).map(name => {
+        const taskSessions = importedSessions.filter(s => s.taskName === name);
+        const totalTimeSpent = taskSessions.reduce((sum, s) => sum + s.duration, 0);
+        
+        // Use the earliest session date as the task creation date
+        const earliestSession = taskSessions.reduce((earliest, current) => {
+          const currentDate = new Date(current.startTime || current.date);
+          const earliestDate = new Date(earliest.startTime || earliest.date);
+          return currentDate < earliestDate ? current : earliest;
+        });
+        
+        return {
+          id: `task-${name.toLowerCase().replace(/\s+/g, '-')}`,
+          name,
+          timeSpent: totalTimeSpent,
+          createdAt: new Date(earliestSession.startTime || earliestSession.date).toISOString()
+        };
+      });
       
       onUpdateTasks(newTasks);
 
+      // Count tasks that will be visible today
+      const todayStr = new Date().toDateString();
+      const visibleTasks = newTasks.filter(task => {
+        const createdToday = new Date(task.createdAt).toDateString() === todayStr;
+        const hasTodaySessions = importedSessions.some(s => s.taskName === task.name && s.date === todayStr);
+        return createdToday || hasTodaySessions;
+      });
+
       setImportStatus({ 
         type: 'success', 
-        message: `Successfully replaced all data with ${importedSessions.length} imported sessions and ${newTasks.length} tasks` 
+        message: `Successfully imported ${importedSessions.length} sessions and ${newTasks.length} tasks. ${visibleTasks.length} tasks will be visible in today's task list, others are in history only.`
       });
     } catch (error) {
-      setImportStatus({ 
-        type: 'error', 
+      setImportStatus({
+        type: 'error',
         message: error instanceof Error ? error.message : 'Error importing file' 
       });
     }
@@ -128,7 +148,7 @@ const DataManager: React.FC<DataManagerProps> = ({
   const handleDeleteRange = () => {
     const dateRange = getDateRange();
     const sessionsToDelete = sessions.filter(session => {
-      const sessionDate = new Date(session.startTime);
+      const sessionDate = new Date(session.startTime || session.date);
       return sessionDate >= dateRange.start && sessionDate <= dateRange.end;
     });
 
@@ -149,7 +169,7 @@ const DataManager: React.FC<DataManagerProps> = ({
     if (activeTab !== 'export' && activeTab !== 'delete') return 0;
     const dateRange = getDateRange();
     return sessions.filter(session => {
-      const sessionDate = new Date(session.startTime);
+      const sessionDate = new Date(session.startTime || session.date);
       return sessionDate >= dateRange.start && sessionDate <= dateRange.end;
     }).length;
   };
@@ -188,7 +208,7 @@ const DataManager: React.FC<DataManagerProps> = ({
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
-                onClick={() => setActiveTab(id as any)}
+                onClick={() => setActiveTab(id as 'export' | 'import' | 'delete')}
                 className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                   activeTab === id
                     ? 'text-white'

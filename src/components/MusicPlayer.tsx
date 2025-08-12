@@ -8,7 +8,7 @@ interface MusicPlayerProps {
   layout?: 'compact' | 'full';
 }
 
-// Helper to get thumbnail for a given stream (custom or YouTube)
+// Helper function to get thumbnail for a given stream (custom or YouTube)
 const getThumb = (stream: { name: string; url: string; customThumbnail?: string }) => {
   if (stream.customThumbnail) {
     return stream.customThumbnail;
@@ -118,7 +118,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
       >
       {/* Compact Header */}
       <div className={`flex items-center justify-between ${layout === 'compact' ? 'px-3 py-2' : 'px-6 py-3'} ${layout === 'compact' ? 'h-10' : ''}`}>
-        {/* Left group: swap indicator with Play in compact layout */}
+        {/* Left group: indicator or Play in compact layout */}
         <div className={`flex items-center ${layout === 'compact' ? 'space-x-3' : 'space-x-3'}`}>
           {layout === 'compact' ? (
             <>
@@ -173,7 +173,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
           )}
         </div>
         
-        {/* Right group: controls (no duplicate indicator in compact layout) */}
+        {/* Right group: controls */}
         <div className={`flex items-center ${layout === 'compact' ? 'space-x-2' : 'space-x-2'}`}>
           <button
             onClick={() => setIsExpanded(!isExpanded)}

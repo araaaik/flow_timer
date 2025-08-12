@@ -10,9 +10,9 @@ The accent color system provides a centralized, reactive way to manage and apply
 
 ### Core Components
 
-1. **ColorSystemContext.tsx** - React Context provider for global color state management
-2. **colorSystem.ts** - Central color definitions and utilities
-3. **SettingsPanel.tsx** - UI for color selection and customization
+1.  **ColorSystemContext.tsx** - React Context provider for global color state management
+2.  **colorSystem.ts** - Central color definitions and utilities
+3.  **SettingsPanel.tsx** - UI for color selection and customization
 
 ### Color Types
 
@@ -30,13 +30,13 @@ interface AccentColor {
 
 The system includes 7 carefully selected default colors:
 
-- **Blue** (`blue-500`) - `#3b82f6`
-- **Purple** (`violet-500`) - `#8b5cf6` 
-- **Green** (`teal-700`) - `#0f766e`
-- **Red** (`red-500`) - `#ef4444`
-- **Orange** (`orange-500`) - `#f97316`
-- **Pink** (`pink-500`) - `#ec4899`
-- **Black** (`gray-900`) - `#111827`
+*   **Blue** (`blue-500`) - `#3b82f6`
+*   **Purple** (`violet-500`) - `#8b5cf6`
+*   **Green** (`teal-700`) - `#0f766e`
+*   **Red** (`red-500`) - `#ef4444`
+*   **Orange** (`orange-500`) - `#f97316`
+*   **Pink** (`pink-500`) - `#ec4899`
+*   **Black** (`gray-900`) - `#111827`
 
 ## Context-Based Architecture
 
@@ -64,10 +64,10 @@ import { getAccentHex } from '../utils/colorSystem';
 
 function MyComponent({ accentColor }) {
   const colorSystem = useColorSystemContext();
-  
+
   // Get hex value for CSS - automatically reactive
   const accentHex = getAccentHex(accentColor, colorSystem.getAllAccentColors());
-  
+
   return (
     <div style={{ backgroundColor: accentHex }}>
       Content
@@ -80,19 +80,19 @@ function MyComponent({ accentColor }) {
 
 Users can add custom colors through the Settings panel with immediate application:
 
-1. Click the "+" button next to "Accent colors"
-2. Use the color picker or enter a hex value (# is automatically added)
-3. Provide a custom name (optional)
-4. Click "Add Color"
-5. **The color is immediately applied and available across all components**
+1.  Click the "+" button next to "Accent colors"
+2.  Use the color picker or enter a hex value (# is automatically added)
+3.  Provide a custom name (optional)
+4.  Click "Add Color"
+5.  **The color is immediately applied and available across all components**
 
 ### Custom Color Features
 
-- **Instant Application**: New colors are automatically set as active
-- **Real-time Updates**: All components update immediately without page refresh
-- **Smart Validation**: Hex values are normalized (# added automatically)
-- **Persistent Storage**: Colors are saved to localStorage
-- **Edit & Delete**: Custom colors can be edited or removed
+*   **Instant Application**: New colors are automatically set as active
+*   **Real-time Updates**: All components update immediately without page refresh
+*   **Smart Validation**: Hex values are normalized (# added automatically)
+*   **Persistent Storage**: Colors are saved to localStorage
+*   **Edit & Delete**: Custom colors can be edited or removed
 
 ## Implementation Details
 
@@ -115,11 +115,11 @@ useEffect(() => {
 
 ### Color Addition Flow
 
-1. User selects/enters color in Settings
-2. `addCustomAccentColor()` creates color object
-3. Context state updates immediately
-4. All subscribed components re-render automatically
-5. New color is set as active accent color
+1.  User selects/enters color in Settings
+2.  `addCustomAccentColor()` creates color object
+3.  Context state updates immediately
+4.  All subscribed components re-render automatically
+5.  New color is set as active accent color
 
 ### Color Storage Format
 
@@ -129,7 +129,7 @@ useEffect(() => {
     {
       "name": "Brand Blue",
       "value": "custom_brandblue_1234567890",
-      "tailwindClass": "custom-brandblue_1234567890", 
+      "tailwindClass": "custom-brandblue_1234567890",
       "hexValue": "#1E40AF",
       "isCustom": true
     }
@@ -145,12 +145,12 @@ useEffect(() => {
 interface ColorSystemContextType {
   // State
   colorSystem: ColorSystemState;
-  
+
   // Getters
   getAllAccentColors: () => AccentColor[];
   getAllLightBackgrounds: () => BackgroundColor[];
   getAllDarkBackgrounds: () => BackgroundColor[];
-  
+
   // Actions
   addCustomAccentColor: (name: string, hexColor: string) => AccentColor | null;
   removeAccentColor: (value: string) => boolean;
@@ -167,7 +167,7 @@ interface ColorSystemContextType {
 function MyComponent({ accentColor }) {
   const colorSystem = useColorSystemContext();
   const accentHex = getAccentHex(accentColor, colorSystem.getAllAccentColors());
-  
+
   return <div style={{ color: accentHex }}>Content</div>;
 }
 ```
@@ -178,7 +178,7 @@ function MyComponent({ accentColor }) {
 function MyComponent({ accentColor }) {
   const colorSystem = useColorSystemContext();
   const classes = getAccentClasses(accentColor, colorSystem.getAllAccentColors());
-  
+
   return <button className={`${classes.bg} ${classes.hover}`}>Button</button>;
 }
 ```
@@ -188,7 +188,7 @@ function MyComponent({ accentColor }) {
 ```typescript
 function MyComponent() {
   const colorSystem = useColorSystemContext();
-  
+
   const addBrandColor = () => {
     const newColor = colorSystem.addCustomAccentColor('Brand Color', '#1E40AF');
     if (newColor) {
@@ -196,7 +196,7 @@ function MyComponent() {
       console.log('Added:', newColor.value);
     }
   };
-  
+
   return <button onClick={addBrandColor}>Add Brand Color</button>;
 }
 ```
@@ -204,66 +204,76 @@ function MyComponent() {
 ## Key Improvements
 
 ### Immediate Reactivity
-- No page refresh needed
-- All components update instantly
-- Real-time color preview
+
+*   No page refresh needed
+*   All components update instantly
+*   Real-time color preview
 
 ### Smart Input Handling
-- Automatic hex validation and normalization
-- User-friendly error handling
-- Flexible input formats (with or without #)
+
+*   Automatic hex validation and normalization
+*   User-friendly error handling
+*   Flexible input formats (with or without #)
 
 ### Persistent State
-- Automatic localStorage synchronization
-- Cross-session persistence
-- Reliable state recovery
+
+*   Automatic localStorage synchronization
+*   Cross-session persistence
+*   Reliable state recovery
 
 ## Migration from Old System
 
 If migrating from the old hook-based system:
 
-1. **Replace hook import**:
-   ```typescript
-   // Old
-   import { useColorSystem } from '../hooks/useColorSystem';
-   
-   // New
-   import { useColorSystemContext } from '../contexts/ColorSystemContext';
-   ```
+1.  **Replace hook import**:
 
-2. **Update hook usage**:
-   ```typescript
-   // Old
-   const colorSystem = useColorSystem();
-   
-   // New  
-   const colorSystem = useColorSystemContext();
-   ```
+    ```typescript
+    // Old
+    import { useColorSystem } from '../hooks/useColorSystem';
 
-3. **Ensure Context provider** is wrapping your app
-4. **Remove any manual force update logic** - now automatic
+    // New
+    import { useColorSystemContext } from '../contexts/ColorSystemContext';
+    ```
+2.  **Update hook usage**:
+
+    ```typescript
+    // Old
+    const colorSystem = useColorSystem();
+
+    // New
+    const colorSystem = useColorSystemContext();
+    ```
+3.  **Ensure Context provider** is wrapping your app
+4.  **Remove any manual force update logic** - now automatic
 
 ## Best Practices
 
-1. **Always use the Context** - Don't bypass the color system
-2. **Pass custom colors to utilities** - Include `getAllAccentColors()` result
-3. **Handle edge cases** - System provides safe fallbacks
-4. **Test with custom colors** - Verify components work with user colors
-5. **Leverage reactivity** - Trust the automatic updates
+1.  **Always use the Context** - Don't bypass the color system
+2.  **Pass custom colors to utilities** - Include `getAllAccentColors()` result
+3.  **Handle edge cases** - System provides safe fallbacks
+4.  **Test with custom colors** - Verify components work with user colors
+5.  **Leverage reactivity** - Trust the automatic updates
 
 ## Troubleshooting
 
 ### Colors not updating immediately
-- Verify you're using `useColorSystemContext()` 
-- Check that the Context provider wraps your component tree
-- Ensure you're passing `getAllAccentColors()` to utility functions
+
+*   Verify you're using `useColorSystemContext()`
+*   Check that the Context provider wraps your component tree
+*   Ensure you're passing `getAllAccentColors()` to utility functions
 
 ### Custom colors not persisting
-- Check localStorage permissions
-- Verify JSON serialization isn't failing
-- Look for console errors during save/load
+
+*   Check localStorage permissions
+*   Verify JSON serialization isn't failing
+*   Look for console errors during save/load
 
 ### Performance concerns
-- The Context system is optimized for performance
-- Only components using colors re-render on changes
-- localStorage operations are batched and efficient
+
+*   The Context system is optimized for performance
+*   Only components using colors re-render on changes
+*   localStorage operations are batched and efficient
+
+## History Screen - Week View
+
+The current day should not be highlighted in the week view of the history screen. The accent color is used to highlight the total time spent on each day.

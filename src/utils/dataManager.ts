@@ -1,4 +1,4 @@
-import type { Session, Task } from '../App';
+import type { Task, Session } from '../App';
 
 /**
  * Data Manager Utilities
@@ -60,7 +60,7 @@ export const formatDateTime = (dateString: string): string => {
  */
 export const filterSessionsByDateRange = (sessions: Session[], dateRange: DateRange): Session[] => {
   return sessions.filter(session => {
-    const sessionDate = new Date(session.startTime);
+    const sessionDate = new Date(session.date);
     return sessionDate >= dateRange.start && sessionDate <= dateRange.end;
   });
 };
@@ -106,12 +106,10 @@ export const exportToCSV = (sessions: Session[], _tasks: Task[], dateRange: Date
     '',
     // Headers for detailed data
     'DETAILED DATA',
-    'Date,Start Time,End Time,Task,Duration (sec),Duration (time)',
+    'Date,Task,Duration (sec),Duration (time)',
     // Session data
     ...filteredSessions.map(session => [
-      new Date(session.startTime).toLocaleDateString('en-US'),
-      new Date(session.startTime).toLocaleTimeString('en-US'),
-      new Date(session.endTime).toLocaleTimeString('en-US'),
+      new Date(session.date).toLocaleDateString('en-US'),
       `"${session.taskName}"`,
       session.duration,
       formatTime(session.duration)
@@ -159,34 +157,48 @@ export const importFromCSV = (file: File): Promise<Session[]> => {
           if (!line) continue;
           
           const parts = line.split(',');
-          if (parts.length < 6) continue;
+          if (parts.length < 4) continue;
           
           try {
             const date = parts[0];
-            const startTime = parts[1];
-            const endTime = parts[2];
-            const taskName = parts[3].replace(/"/g, ''); // Remove quotes
-            const duration = parseInt(parts[4]);
+            const taskName = parts[1].replace(/"/g, ''); // Remove quotes
+            const duration = parts[2];
             
-            // Create date objects
-            const startDateTime = new Date(`${date} ${startTime}`);
-            const endDateTime = new Date(`${date} ${endTime}`);
+            // Create date objects (assuming UTC)
+            // Handle both DD-MM-YY and YYYY-MM-DD formats
+            const dateParts = date.split('-');
+            let startDateTime: Date;
             
-            if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime()) || isNaN(duration)) {
-              continue; // Skip invalid rows
+            if (dateParts[0].length === 2) {
+              // DD-MM-YY format (like 01-07-25)
+              const day = parseInt(dateParts[0]);
+              const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+              const year = 2000 + parseInt(dateParts[2]); // Assume 20XX
+              startDateTime = new Date(Date.UTC(year, month, day));
+            } else {
+              // YYYY-MM-DD format
+              const year = parseInt(dateParts[0]);
+              const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+              const day = parseInt(dateParts[2]);
+              startDateTime = new Date(Date.UTC(year, month, day));
             }
             
+            if (isNaN(startDateTime.getTime()) || isNaN(Number(duration))) {
+              continue; // Skip invalid rows
+            }
+
             const session: Session = {
               id: `imported-${Date.now()}-${Math.random()}`,
               taskId: `task-${taskName.toLowerCase().replace(/\s+/g, '-')}`,
               taskName,
+              duration: Number(duration),
+              date: startDateTime.toDateString(),
               startTime: startDateTime.toISOString(),
-              endTime: endDateTime.toISOString(),
-              duration,
-              date: startDateTime.toDateString()
-            };
-            
-            sessions.push(session);
+              endTime: new Date(startDateTime.getTime() + Number(duration) * 1000).toISOString()
+           };
+           
+           sessions.push(session);
+           console.log('Parsed session:', session);
           } catch (error) {
             // Skip invalid rows
             continue;
@@ -215,7 +227,7 @@ export const deleteSessionsByDateRange = (
   dateRange: DateRange
 ): Session[] => {
   return sessions.filter(session => {
-    const sessionDate = new Date(session.startTime);
+    const sessionDate = new Date(session.date);
     return sessionDate < dateRange.start || sessionDate > dateRange.end;
   });
 };

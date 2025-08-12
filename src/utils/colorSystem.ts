@@ -89,9 +89,7 @@ export const DEFAULT_LIGHT_BACKGROUNDS: BackgroundColor[] = [
   { key: 'gray-100', cls: 'bg-gray-100', label: '100' },
   { key: 'gray-200', cls: 'bg-gray-200', label: '200' },
   { key: 'gray-300', cls: 'bg-gray-300', label: '300' },
-  { key: 'gray-400', cls: 'bg-gray-400', label: '400' },
-  { key: 'slate-100', cls: 'bg-slate-100', label: 'S100' },
-  { key: 'neutral-100', cls: 'bg-neutral-100', label: 'N100' }
+  { key: 'gray-400', cls: 'bg-gray-400', label: '400' }
 ];
 
 // Default dark theme backgrounds
@@ -100,9 +98,7 @@ export const DEFAULT_DARK_BACKGROUNDS: BackgroundColor[] = [
   { key: 'gray-800', cls: 'bg-gray-800', label: '800' },
   { key: 'gray-900', cls: 'bg-gray-900', label: '900' },
   { key: 'gray-950', cls: 'bg-gray-950', label: '950' },
-  { key: 'neutral-900', cls: 'bg-neutral-900', label: 'N900' },
-  { key: 'slate-900', cls: 'bg-slate-900', label: 'S900' },
-  { key: 'black', cls: 'bg-black', label: 'Black' }
+  { key: 'neutral-900', cls: 'bg-neutral-900', label: 'N900' }
 ];
 
 /**

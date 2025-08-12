@@ -371,14 +371,12 @@ function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerP
   const colorSystem = useColorSystemContext();
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [selectedColor, setSelectedColor] = useState('#3b82f6');
-  const [colorName, setColorName] = useState('');
-  const [editingColor, setEditingColor] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded] = useState(false);
 
   const allColors = colorSystem.getAllAccentColors();
 
   const handleColorSelect = (color: string) => {
-    const name = colorName.trim() || `Custom Color ${Date.now()}`;
+    const name = `Custom Color ${Date.now()}`;
     const newColor = colorSystem.addCustomAccentColor(name, color);
     if (newColor) {
       // Immediately set the new color as active
@@ -386,37 +384,6 @@ function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerP
       
       setShowColorPicker(false);
       setSelectedColor('#3b82f6');
-      setColorName('');
-    }
-  };
-
-  const handleEditColor = (colorValue: string) => {
-    const color = allColors.find(c => c.value === colorValue);
-    if (color && color.isCustom) {
-      setEditingColor(colorValue);
-      setSelectedColor(color.hexValue);
-      setColorName(color.name);
-      setShowColorPicker(true);
-    }
-  };
-
-  const handleUpdateColor = () => {
-    if (editingColor) {
-      // Update existing color
-      const name = colorName.trim() || `Custom Color ${Date.now()}`;
-      const success = colorSystem.updateAccentColor(editingColor, name, selectedColor);
-      if (success) {
-        // If this is the currently selected color, keep it selected
-        if (settings.accentColor === editingColor) {
-          onUpdateSettings({ accentColor: editingColor });
-        }
-        setEditingColor(null);
-        setShowColorPicker(false);
-        setSelectedColor('#3b82f6');
-        setColorName('');
-      }
-    } else {
-      handleColorSelect(selectedColor);
     }
   };
 
@@ -441,17 +408,6 @@ function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerP
           >
             <Plus size={14} />
           </button>
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className={`p-1 rounded transition-colors ${
-              theme === 'dark'
-                ? 'hover:bg-gray-600 text-gray-400 hover:text-gray-300'
-                : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
-            }`}
-            title={isExpanded ? 'Show less' : 'Show all'}
-          >
-            {isExpanded ? <Minus size={14} /> : <Eye size={14} />}
-          </button>
         </div>
       </div>
 
@@ -462,7 +418,7 @@ function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerP
         }`}>
           <div className="space-y-3">
             <h4 className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-              {editingColor ? 'Edit Custom Color' : 'Add Custom Color'}
+              Add Custom Color
             </h4>
             <div className="flex flex-col items-center space-y-3">
               <HexColorPicker 
@@ -471,17 +427,6 @@ function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerP
                 style={{ width: '150px', height: '150px' }}
               />
               <div className="w-full space-y-2">
-                <input
-                  type="text"
-                  placeholder="Color name"
-                  value={colorName}
-                  onChange={(e) => setColorName(e.target.value)}
-                  className={`w-full px-2 py-1.5 rounded text-xs ${
-                    theme === 'dark' 
-                      ? 'bg-gray-600 text-white border-gray-500' 
-                      : 'bg-white text-gray-900 border-gray-300'
-                  } border focus:outline-none focus:ring-1 focus:ring-opacity-50`}
-                />
                 <div className="flex items-center space-x-2">
                   <div 
                     className="w-6 h-6 rounded border border-gray-300 flex-shrink-0"
@@ -509,17 +454,15 @@ function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerP
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={handleUpdateColor}
+                  onClick={() => handleColorSelect(selectedColor)}
                   className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium settings-action-button"
                 >
                   <Check size={10} />
-                  {editingColor ? 'Update' : 'Add'}
+                  Add
                 </button>
                 <button
                   onClick={() => {
                     setShowColorPicker(false);
-                    setEditingColor(null);
-                    setColorName('');
                     setSelectedColor('#3b82f6');
                   }}
                   className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
@@ -557,32 +500,18 @@ function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerP
               title={color.name}
             />
             {color.isCustom && (
-              <div className="absolute -top-1 -right-1 flex gap-1">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditColor(color.value);
-                  }}
-                  className={`w-5 h-5 rounded-full ${
-                    isLightColor(color.hexValue) ? 'bg-blue-600 text-white' : 'bg-blue-400 text-white'
-                  } opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center`}
-                  title="Edit color"
-                >
-                  <Edit3 size={8} />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    colorSystem.removeAccentColor(color.value);
-                  }}
-                  className={`w-5 h-5 rounded-full ${
-                    isLightColor(color.hexValue) ? 'bg-red-600 text-white' : 'bg-red-400 text-white'
-                  } opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center`}
-                  title="Remove color"
-                >
-                  <Minus size={8} />
-                </button>
-              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  colorSystem.removeAccentColor(color.value);
+                }}
+                className={`absolute -top-1 -right-1 w-5 h-5 rounded-full ${
+                  isLightColor(color.hexValue) ? 'bg-red-600 text-white' : 'bg-red-400 text-white'
+                } opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center`}
+                title="Remove color"
+              >
+                <Minus size={8} />
+              </button>
             )}
           </div>
         ))}
@@ -593,126 +522,22 @@ function AccentColorManager({ theme, settings, onUpdateSettings }: ColorManagerP
 
 function BackgroundManager({ theme, settings, onUpdateSettings, type }: ColorManagerProps & { type: 'light' | 'dark' }) {
   const colorSystem = useColorSystemContext();
-  const [isAdding, setIsAdding] = useState(false);
-  const [newBgLabel, setNewBgLabel] = useState('');
-  const [newBgClass, setNewBgClass] = useState('');
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded] = useState(false);
 
   const allBackgrounds = type === 'light' 
     ? colorSystem.getAllLightBackgrounds() 
     : colorSystem.getAllDarkBackgrounds();
 
-  const handleAddBackground = () => {
-    if (newBgLabel.trim() && newBgClass.trim()) {
-      const success = type === 'light'
-        ? colorSystem.addLightBackground(newBgLabel.trim(), newBgClass.trim())
-        : colorSystem.addDarkBackground(newBgLabel.trim(), newBgClass.trim());
-      
-      if (success) {
-        setNewBgLabel('');
-        setNewBgClass('');
-        setIsAdding(false);
-      }
-    }
-  };
-
-  const handleRemoveBackground = (key: string) => {
-    if (type === 'light') {
-      colorSystem.removeLightBackground(key);
-    } else {
-      colorSystem.removeDarkBackground(key);
-    }
-  };
-
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {type === 'light' ? <Sun size={14} /> : <Moon size={14} />}
-          <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-            {type === 'light' ? 'Light' : 'Dark'} backgrounds
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setIsAdding(!isAdding)}
-            className={`p-1 rounded transition-colors ${
-              theme === 'dark'
-                ? 'hover:bg-gray-600 text-gray-400 hover:text-gray-300'
-                : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
-            }`}
-            title="Add custom background"
-          >
-            <Plus size={14} />
-          </button>
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className={`p-1 rounded transition-colors ${
-              theme === 'dark'
-                ? 'hover:bg-gray-600 text-gray-400 hover:text-gray-300'
-                : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
-            }`}
-            title={isExpanded ? 'Show less' : 'Show all'}
-          >
-            {isExpanded ? <Minus size={14} /> : <Eye size={14} />}
-          </button>
-        </div>
+      <div className="flex items-center gap-2">
+        {type === 'light' ? <Sun size={14} /> : <Moon size={14} />}
+        <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+          {type === 'light' ? 'Light' : 'Dark'} backgrounds
+        </span>
       </div>
 
-      {isAdding && (
-        <div className={`p-3 rounded-lg border ${
-          theme === 'dark' ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'
-        }`}>
-          <div className="space-y-2">
-            <input
-              type="text"
-              placeholder="Label (e.g., '100')"
-              value={newBgLabel}
-              onChange={(e) => setNewBgLabel(e.target.value)}
-              className={`w-full px-3 py-2 rounded-lg text-sm ${
-                theme === 'dark' 
-                  ? 'bg-gray-600 text-white border-gray-500' 
-                  : 'bg-white text-gray-900 border-gray-300'
-              } border focus:outline-none focus:ring-2 focus:ring-opacity-50`}
-            />
-            <input
-              type="text"
-              placeholder="Tailwind class (e.g., 'bg-slate-100')"
-              value={newBgClass}
-              onChange={(e) => setNewBgClass(e.target.value)}
-              className={`w-full px-3 py-2 rounded-lg text-sm ${
-                theme === 'dark' 
-                  ? 'bg-gray-600 text-white border-gray-500' 
-                  : 'bg-white text-gray-900 border-gray-300'
-              } border focus:outline-none focus:ring-2 focus:ring-opacity-50`}
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={handleAddBackground}
-                className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium settings-action-button"
-              >
-                <Check size={12} />
-                Add
-              </button>
-              <button
-                onClick={() => {
-                  setIsAdding(false);
-                  setNewBgLabel('');
-                  setNewBgClass('');
-                }}
-                className={`flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium ${
-                  theme === 'dark'
-                    ? 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                <X size={12} />
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       <div className="flex flex-wrap gap-2">
         {allBackgrounds.slice(0, isExpanded ? allBackgrounds.length : 6).map((bg) => (
@@ -728,15 +553,6 @@ function BackgroundManager({ theme, settings, onUpdateSettings, type }: ColorMan
               }`}
               title={bg.label}
             />
-            {bg.isCustom && (
-              <button
-                onClick={() => handleRemoveBackground(bg.key)}
-                className={`absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center`}
-                title="Remove background"
-              >
-                <Minus size={10} />
-              </button>
-            )}
           </div>
         ))}
       </div>
@@ -754,7 +570,7 @@ function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps
     <div 
       className={`rounded-xl p-4 md:p-6 max-w-5xl mx-auto ${
         theme === 'dark' ? 'bg-gray-800/95 backdrop-blur-sm' : 'bg-white/95 backdrop-blur-sm'
-      } ${settings.flatMode ? 'border border-gray-200 dark:border-gray-700' : 'shadow-xl'}`}
+      } ${settings.flatMode ? 'border border-gray-200 dark:border-gray-700' : 'shadow-lg'}`}
       style={{
         '--accent-color': accentHex,
         '--accent-color-hover': accentHex + 'dd', // slightly transparent for hover
@@ -777,7 +593,7 @@ function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps
           {/* Timer Settings */}
           <div className={`p-5 rounded-xl border-2 ${
             theme === 'dark' ? 'border-gray-600 bg-gray-800/70' : 'border-gray-300 bg-gray-50/80'
-          } ${settings.flatMode ? '' : 'shadow-md'}`}>
+          } ${settings.flatMode ? '' : ''}`}>
             <h4 className={`text-sm font-semibold mb-4 flex items-center ${
               theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
             }`}>
@@ -1032,7 +848,7 @@ function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps
           {/* Task Settings */}
           <div className={`p-5 rounded-xl border-2 ${
             theme === 'dark' ? 'border-gray-600 bg-gray-800/70' : 'border-gray-300 bg-gray-50/80'
-          } ${settings.flatMode ? '' : 'shadow-md'}`}>
+          } ${settings.flatMode ? '' : ''}`}>
             <h4 className={`text-sm font-semibold mb-4 flex items-center ${
               theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
             }`}>
@@ -1092,7 +908,7 @@ function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps
           {/* Music Settings */}
           <div className={`p-5 rounded-xl border-2 ${
             theme === 'dark' ? 'border-gray-600 bg-gray-800/70' : 'border-gray-300 bg-gray-50/80'
-          } ${settings.flatMode ? '' : 'shadow-md'}`}>
+          } ${settings.flatMode ? '' : ''}`}>
             <h4 className={`text-sm font-semibold mb-4 flex items-center ${
               theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
             }`}>
@@ -1133,7 +949,7 @@ function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps
           {/* Appearance Settings */}
           <div className={`p-5 rounded-xl border-2 ${
             theme === 'dark' ? 'border-gray-600 bg-gray-800/70' : 'border-gray-300 bg-gray-50/80'
-          } ${settings.flatMode ? '' : 'shadow-md'}`}>
+          } ${settings.flatMode ? '' : ''}`}>
             <h4 className={`text-sm font-semibold mb-4 flex items-center ${
               theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
             }`}>
@@ -1279,20 +1095,20 @@ function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps
         </div>
       </div>
       
-      {/* CSS для централизованного управления акцентными цветами */}
+      {/* CSS for centralized accent color management */}
       <style>{`
-        /* Активные кнопки меню */
+        /* Active menu buttons */
         .settings-active-button {
           background-color: var(--accent-color) !important;
           color: white !important;
         }
         
-        /* Активные тогглы */
+        /* Active toggles */
         .settings-active-toggle {
           background-color: var(--accent-color) !important;
         }
         
-        /* Кнопки действий (Save, Add) */
+        /* Action buttons (Save, Add) */
         .settings-action-button {
           background-color: var(--accent-color) !important;
           color: white !important;

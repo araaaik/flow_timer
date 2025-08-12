@@ -8,7 +8,7 @@ const rootEl = document.getElementById('root');
 console.log('[DEV] main.tsx loaded, root element:', rootEl);
 
 if (!rootEl) {
-  // If this happens, index.html didn't render #root
+  // If this happens, index.html did not render #root
   throw new Error('Root element #root not found');
 }
 

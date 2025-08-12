@@ -15,11 +15,13 @@ English | [Русский](README.ru.md)
 
 ### GitHub Pages (Automatic)
 
-The project is configured for automatic deployment to GitHub Pages:
+The project is configured for automatic deployment to GitHub Pages using GitHub Actions.
 
-1. Push to `main` branch triggers automatic build and deploy
-2.  Site will be available at `https://araaaik.github.io/flow_timer/`
-3.  GitHub Actions workflow handles the entire process
+1.  Pushing changes to the `main` or `master` branch will trigger a new GitHub Actions workflow.
+2.  The workflow will build the project and deploy it to GitHub Pages.
+3.  The site will be available at `https://araaaik.github.io/flow_timer/`.
+
+The deployment process is defined in the `.github/workflows/deploy.yml` file.
 
 
 ## Docs
