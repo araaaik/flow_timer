@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Task History</title>
+</head>
+<body>
+    <h1>Test Task History</h1>
+    <button onclick="addTestTask()">Add Test Task</button>
+    <button onclick="checkHistory()">Check History</button>
+    <button onclick="clearHistory()">Clear History</button>
+    <div id="output"></div>
+    
+    <script>
+        function addTestTask() {
+            // Simulate adding a task to history
+            let history = [];
+            try {
+                const existing = localStorage.getItem('flow-task-history');
+                if (existing) {
+                    history = JSON.parse(existing);
+                }
+            } catch (e) {
+                console.error('Error reading history:', e);
+            }
+            
+            const taskName = 'Test Task ' + Date.now();
+            if (!history.includes(taskName)) {
+                history.push(taskName);
+                localStorage.setItem('flow-task-history', JSON.stringify(history));
+                console.log('Added task:', taskName);
+                console.log('New history:', history);
+            }
+            
+            checkHistory();
+        }
+        
+        function checkHistory() {
+            const output = document.getElementById('output');
+            const history = localStorage.getItem('flow-task-history');
+            
+            output.innerHTML = '<h2>Current History:</h2>';
+            if (history) {
+                try {
+                    const parsed = JSON.parse(history);
+                    output.innerHTML += '<pre>' + JSON.stringify(parsed, null, 2) + '</pre>';
+                    output.innerHTML += '<p>Length: ' + parsed.length + '</p>';
+                } catch (e) {
+                    output.innerHTML += '<p>Error parsing: ' + e.message + '</p>';
+                }
+            } else {
+                output.innerHTML += '<p>No history found (null)</p>';
+            }
+        }
+        
+        function clearHistory() {
+            localStorage.removeItem('flow-task-history');
+            checkHistory();
+        }
+        
+        // Check on load
+        checkHistory();
+    </script>
+</body>
+</html>

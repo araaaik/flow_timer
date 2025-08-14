@@ -10,6 +10,7 @@ import {
   X
 } from 'lucide-react';
 import type { Session, Task } from '../App';
+import { useNotificationContext } from '../contexts/NotificationContext';
 import {
   exportToCSV,
   importFromCSV,
@@ -40,6 +41,7 @@ const DataManager: React.FC<DataManagerProps> = ({
   accentColor,
   onClose
 }) => {
+  const { confirm, alert } = useNotificationContext();
   const [activeTab, setActiveTab] = useState<'export' | 'import' | 'delete'>('export');
   const [datePreset, setDatePreset] = useState<DatePreset>('all');
   const [customDateRange, setCustomDateRange] = useState({
@@ -83,7 +85,7 @@ const DataManager: React.FC<DataManagerProps> = ({
     if (!file) return;
 
     // Warning about data replacement
-    const confirmReplace = window.confirm(
+    const confirmReplace = await confirm(
       `WARNING: This will completely replace all your current data with the imported data. Your existing ${sessions.length} sessions will be permanently deleted.\n\nAre you sure you want to continue?`
     );
     
@@ -145,7 +147,7 @@ const DataManager: React.FC<DataManagerProps> = ({
     event.target.value = '';
   };
 
-  const handleDeleteRange = () => {
+  const handleDeleteRange = async () => {
     const dateRange = getDateRange();
     const sessionsToDelete = sessions.filter(session => {
       const sessionDate = new Date(session.startTime || session.date);
@@ -153,13 +155,14 @@ const DataManager: React.FC<DataManagerProps> = ({
     });
 
     if (sessionsToDelete.length === 0) {
-      alert('No sessions found in the selected date range');
+      alert('No sessions found in the selected date range', 'warning');
       return;
     }
 
     const confirmMessage = `Are you sure you want to delete ${sessionsToDelete.length} sessions from ${dateRange.start.toLocaleDateString('en-US')} to ${dateRange.end.toLocaleDateString('en-US')}? This action cannot be undone.`;
     
-    if (window.confirm(confirmMessage)) {
+    const confirmed = await confirm(confirmMessage);
+    if (confirmed) {
       const updatedSessions = deleteSessionsByDateRange(sessions, dateRange);
       onUpdateSessions(updatedSessions);
     }

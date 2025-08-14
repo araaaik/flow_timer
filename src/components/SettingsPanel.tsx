@@ -4,6 +4,7 @@ import { HexColorPicker } from 'react-colorful';
 import type { Settings } from '../App';
 import { useMusicPlayer } from '../hooks/useMusicPlayer';
 import { useColorSystemContext } from '../contexts/ColorSystemContext';
+import { useNotificationContext } from '../contexts/NotificationContext';
 import { getAccentHex, isLightColor } from '../utils/colorSystem';
 
 /**
@@ -108,9 +109,12 @@ function MusicStreamsSettings({ theme }: MusicStreamsSettingsProps) {
     setEditThumbnail('');
   };
 
-  const handleDelete = (index: number) => {
-    if (streams.length > 1 && window.confirm('Are you sure you want to delete this stream?')) {
-      deleteStream(index);
+  const handleDelete = async (index: number) => {
+    if (streams.length > 1) {
+      const confirmed = await confirm('Are you sure you want to delete this stream?');
+      if (confirmed) {
+        deleteStream(index);
+      }
     }
   };
 
@@ -562,6 +566,7 @@ function BackgroundManager({ theme, settings, onUpdateSettings, type }: ColorMan
 
 function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps) {
   const colorSystem = useColorSystemContext();
+  const { confirm, showSuccess, showError, showInfo, showConfirm } = useNotificationContext();
   
   // Get hex value for the current accent color
   const accentHex = getAccentHex(settings.accentColor, colorSystem.getAllAccentColors());
@@ -664,13 +669,13 @@ function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps
               {/* Flow Mode Settings */}
               {(settings.timerMode ?? 'flow') === 'flow' && (
                 <div className="space-y-3 pl-3 border-l border-gray-300 dark:border-gray-600">
-                  {/* Break Toggle */}
+                  {/* Enable Breaks Toggle */}
                   <div className="flex items-center justify-between">
                     <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Allow skip breaks
+                      Enable breaks
                     </span>
                     <button
-                      onClick={() => onUpdateSettings({ flowBreakSkipEnabled: !(settings.flowBreakSkipEnabled ?? false) })}
+                      onClick={() => onUpdateSettings({ flowBreakEnabled: !(settings.flowBreakEnabled ?? true) })}
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
                         (settings.flowBreakEnabled ?? true)
                           ? 'settings-active-toggle'
@@ -684,6 +689,29 @@ function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps
                       />
                     </button>
                   </div>
+
+                  {/* Skip Breaks Toggle - only show if breaks are enabled */}
+                  {(settings.flowBreakEnabled ?? true) && (
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Allow skip breaks
+                      </span>
+                      <button
+                        onClick={() => onUpdateSettings({ flowBreakSkipEnabled: !(settings.flowBreakSkipEnabled ?? true) })}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                          (settings.flowBreakSkipEnabled ?? true)
+                            ? 'settings-active-toggle'
+                            : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                            (settings.flowBreakSkipEnabled ?? true) ? 'translate-x-5' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  )}
 
                   {/* Break Settings */}
                   {(settings.flowBreakEnabled ?? true) && (
@@ -1007,6 +1035,30 @@ function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps
                             settings.audioNotifications ? 'translate-x-3.5' : 'translate-x-0.5'
                           }`}
                         />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Notification Demo */}
+                  <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
+                    <div className="flex flex-wrap gap-1">
+                      <button
+                        onClick={() => showSuccess('Success', 'Operation completed')}
+                        className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                      >
+                        ✓
+                      </button>
+                      <button
+                        onClick={() => showError('Error', 'Something went wrong')}
+                        className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                      >
+                        ✗
+                      </button>
+                      <button
+                        onClick={() => showConfirm('Confirm action?', '', () => showInfo('Confirmed'), () => showInfo('Cancelled'))}
+                        className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                      >
+                        ?
                       </button>
                     </div>
                   </div>

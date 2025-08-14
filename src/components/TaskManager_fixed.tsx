@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react';
-import { Plus, X, BarChart3 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Plus, X, Clock, Target, BarChart3 } from 'lucide-react';
 import type { Task, Session } from '../App';
+import { getAccentClasses } from '../utils/colorSystem';
 import { useColorSystemContext } from '../contexts/ColorSystemContext';
-import { useNotificationContext } from '../contexts/NotificationContext';
 import { getAccentHex } from '../utils/colorSystem';
 
 interface TaskManagerProps {
@@ -33,7 +33,6 @@ function TaskManager({
   onShowHistory
 }: TaskManagerProps & { isRunning?: boolean }) {
   const colorSystem = useColorSystemContext();
-  const { confirm } = useNotificationContext();
   const accentHex = getAccentHex(accentColor, colorSystem.getAllAccentColors());
   
   const [newTaskName, setNewTaskName] = useState('');
@@ -42,18 +41,7 @@ function TaskManager({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const filteredSuggestions = (taskHistory || [])
-    .filter(task => {
-      if (task === newTaskName) return false;
-      
-      const searchTerm = newTaskName.toLowerCase();
-      const taskName = task.toLowerCase();
-      
-      // Create regex that matches the search term at the beginning of words
-      // \b ensures word boundary, so "in" will match "integrate" but not "maintain"
-      const regex = new RegExp(`\\b${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i');
-      
-      return regex.test(taskName);
-    })
+    .filter(task => task.toLowerCase().includes(newTaskName.toLowerCase()) && task !== newTaskName)
     .slice(0, 5);
 
   const handleAddTask = () => {
@@ -77,9 +65,8 @@ function TaskManager({
     setNewTaskTime('');
   };
 
-  const handleDelete = async (id: string, taskName: string) => {
-    const confirmed = await confirm(`Delete task "${taskName}"? This will remove all recorded time.`);
-    if (confirmed) {
+  const handleDelete = (id: string, taskName: string) => {
+    if (window.confirm(`Delete task "${taskName}"? This will remove all recorded time.`)) {
       onDeleteTask(id);
     }
   };
@@ -91,13 +78,6 @@ function TaskManager({
     if (!isInteractive && !isInsideTaskItem) {
       onSelectTask(null);
     }
-  };
-
-  /** formatHHMM() -> "H:MM" display for badges */
-  const formatHHMM = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    return h > 0 ? `${h}:${m.toString().padStart(2, '0')}` : `${m}m`;
   };
 
   return (
@@ -159,54 +139,7 @@ function TaskManager({
             </div>
           ) : (
             <>
-              {tasks.filter((task) => {
-                // Only show tasks that have today's sessions or were created today
-                const todayStr = new Date().toDateString();
-                const createdToday = new Date(task.createdAt).toDateString() === todayStr;
-                const hasTodaySessions = Array.isArray(sessions) && 
-                  (sessions as Session[]).some(s => s.taskId === task.id && s.date === todayStr);
-                
-                return createdToday || hasTodaySessions;
-              }).map((task) => {
-                const showBadge = Array.isArray(sessions);
-                const todayStr = new Date().toDateString();
-
-                // Base = Accumulated saved sessions for today
-                const baseToday = showBadge
-                  ? (sessions as Session[])
-                      .filter(s => s.taskId === task.id && s.date === todayStr)
-                      .reduce((sum, s) => sum + s.duration, 0)
-                  : 0;
-
-                // If this is the active task and timer is running, add elapsed live seconds
-                let liveExtra = 0;
-                try {
-                  const raw = localStorage.getItem('flow-timer-state');
-                  if (raw) {
-                    const state = JSON.parse(raw || '{}');
-                    if (
-                      state?.isRunning &&
-                      !state?.isBreak &&
-                      activeTask &&
-                      activeTask.id === task.id &&
-                      typeof state?.startTime === 'number'
-                    ) {
-                      const now = Date.now();
-                      const elapsed = Math.max(0, Math.floor((now - state.startTime) / 1000));
-                      liveExtra = elapsed;
-                    }
-                  }
-                } catch {
-                  // Ignore localStorage parsing errors
-                }
-
-                const totalToday = baseToday + liveExtra;
-                const hasGoal = typeof task.estimatedTime === 'number' && task.estimatedTime > 0;
-                const pctToday = hasGoal
-                  ? Math.min(100, Math.max(0, Math.round(((totalToday || 0) / (task.estimatedTime || 1)) * 100)))
-                  : 0;
-
-                return (
+              {tasks.map((task) => (
                 <div
                   key={task.id}
                   data-task-item
@@ -218,8 +151,6 @@ function TaskManager({
                     }
                   }}
                   className={`rounded-lg animate-fade-in-up cursor-pointer transition-all duration-240 ease-out-smooth ${
-                    layout === 'compact' ? 'min-h-[3rem]' : 'min-h-10'
-                  } ${
                     activeTask?.id === task.id
                       ? 'task-accent-ring'
                       : theme === 'dark'
@@ -227,81 +158,34 @@ function TaskManager({
                         : 'border border-gray-200 bg-gray-50 hover:bg-gray-100'
                   }`}
                 >
-                  <div className={`px-3 transition-colors duration-240 ease-out-smooth ${
-                    layout === 'compact' ? 'py-3' : 'py-2 min-h-10'
-                  }`}>
-                    {/* Row 1: name, today's badge, delete */}
-                    <div className={`flex ${layout === 'compact' ? 'items-start' : 'items-center'} justify-between gap-2`}>
-                      <div className="min-w-0 flex-1">
-                        <span 
-                          className={`font-semibold transition-colors duration-240 ease-out-smooth ${
-                            layout === 'compact' 
-                              ? 'block leading-tight' 
-                              : 'truncate'
-                          } ${
-                            activeTask?.id === task.id
-                              ? (theme === 'dark' ? 'text-white' : 'text-gray-900')
-                              : (theme === 'dark' ? 'text-gray-200' : 'text-gray-800')
-                          }`}
-                          style={layout === 'compact' ? {
-                            display: '-webkit-box',
-                            WebkitLineClamp: 3,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            wordBreak: 'break-word'
-                          } : undefined}
-                        >
+                  <div className="px-3 py-2 min-h-10 transition-colors duration-240 ease-out-smooth">
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0 pr-2">
+                        <span className={`font-semibold truncate transition-colors duration-240 ease-out-smooth ${
+                          activeTask?.id === task.id
+                            ? (theme === 'dark' ? 'text-white' : 'text-gray-900')
+                            : (theme === 'dark' ? 'text-gray-200' : 'text-gray-800')
+                        }`}>
                           {task.name}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {showBadge && (
-                          <div
-                            className="px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap inline-flex items-center transition-colors duration-240 ease-out-smooth task-accent-bg"
-                            title="Today's total time for this task"
-                          >
-                            <span className="tabular-nums transition-colors duration-240 ease-out-smooth">{formatHHMM(totalToday)}</span>
-                          </div>
-                        )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(task.id, task.name);
-                          }}
-                          className={`p-1 rounded transition-colors duration-240 ease-out-smooth ${
-                            theme === 'dark'
-                              ? 'hover:bg-gray-600 text-gray-400 hover:text-red-400'
-                              : 'hover:bg-gray-200 text-gray-400 hover:text-red-500'
-                          }`}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(task.id, task.name);
+                        }}
+                        className={`p-1 rounded transition-colors duration-240 ease-out-smooth ${
+                          theme === 'dark'
+                            ? 'hover:bg-gray-600 text-gray-400 hover:text-red-400'
+                            : 'hover:bg-gray-200 text-gray-400 hover:text-red-500'
+                        }`}
+                      >
+                        <X size={14} />
+                      </button>
                     </div>
-
-                    {/* Row 2: progress bar if goal is set */}
-                    {hasGoal && (
-                      <div className="mt-2">
-                        <div className={`w-full h-1.5 rounded-full transition-colors duration-240 ease-out-smooth ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'}`}>
-                          <div
-                            className="h-1.5 rounded-full transition-[width,background-color] duration-240 ease-out-smooth will-change-[width]"
-                            style={{ width: `${pctToday}%`, backgroundColor: accentHex }}
-                          />
-                        </div>
-                        <div className="mt-1 flex items-center justify-between text-[10px] leading-3">
-                          <span className={`transition-colors duration-240 ease-out-smooth ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                            Goal: {Math.floor((task.estimatedTime || 0) / 3600)}h {Math.floor(((task.estimatedTime || 0) % 3600) / 60)}m
-                          </span>
-                          <span className={`tabular-nums transition-colors duration-240 ease-out-smooth ${theme === 'dark' ? 'text-gray-400' : 'text-gray-900'}`}>
-                            {pctToday}%
-                          </span>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
-              );
-            })}
+              ))}
             </>
           )}
         </div>
@@ -398,8 +282,8 @@ function TaskManager({
                 </div>
               </div>
 
-              {/* Suggestions - показываем только после ввода минимум 2 символов */}
-              {newTaskName.length >= 2 && filteredSuggestions.length > 0 && (
+              {/* Suggestions - ИСПРАВЛЕНО: убрано условие newTaskName && */}
+              {filteredSuggestions.length > 0 && (
                 <div className={`rounded-lg border shadow-sm ${
                   theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
                 }`}>

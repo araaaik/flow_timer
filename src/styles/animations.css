@@ -1,0 +1,422 @@
+/**
+ * Base animation system with keyframes and utility classes
+ * Provides consistent timing and easing for smooth UI animations
+ */
+
+/* CSS Custom Properties for Animation Configuration */
+:root {
+  --animation-duration-fast: 150ms;
+  --animation-duration-normal: 240ms;
+  --animation-duration-slow: 400ms;
+  --animation-duration-layout: 500ms;
+  
+  --animation-easing-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --animation-easing-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --animation-easing-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
+  --animation-easing-sharp: cubic-bezier(0.4, 0.0, 0.6, 1);
+  
+  --animation-stagger-base: 50ms;
+  --animation-stagger-increment: 25ms;
+}
+
+/* Base Keyframes */
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+  }
+  to { 
+    opacity: 1; 
+  }
+}
+
+@keyframes fadeOut {
+  from { 
+    opacity: 1; 
+  }
+  to { 
+    opacity: 0; 
+  }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0; 
+    transform: translateY(16px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes slideDown {
+  from { 
+    opacity: 0; 
+    transform: translateY(-16px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes slideLeft {
+  from { 
+    opacity: 0; 
+    transform: translateX(16px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0); 
+  }
+}
+
+@keyframes slideRight {
+  from { 
+    opacity: 0; 
+    transform: translateX(-16px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0); 
+  }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0; 
+    transform: scale(0.95); 
+  }
+  to { 
+    opacity: 1; 
+    transform: scale(1); 
+  }
+}
+
+@keyframes scaleOut {
+  from { 
+    opacity: 1; 
+    transform: scale(1); 
+  }
+  to { 
+    opacity: 0; 
+    transform: scale(0.95); 
+  }
+}
+
+@keyframes expandHeight {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: auto;
+    opacity: 1;
+  }
+}
+
+@keyframes collapseHeight {
+  from {
+    height: auto;
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+/* Utility Animation Classes */
+.animate-fade-in {
+  animation: fadeIn var(--animation-duration-normal) var(--animation-easing-standard);
+}
+
+.animate-fade-out {
+  animation: fadeOut var(--animation-duration-normal) var(--animation-easing-standard);
+}
+
+.animate-slide-up {
+  animation: slideUp var(--animation-duration-normal) var(--animation-easing-standard);
+}
+
+.animate-slide-down {
+  animation: slideDown var(--animation-duration-normal) var(--animation-easing-standard);
+}
+
+.animate-slide-left {
+  animation: slideLeft var(--animation-duration-normal) var(--animation-easing-standard);
+}
+
+.animate-slide-right {
+  animation: slideRight var(--animation-duration-normal) var(--animation-easing-standard);
+}
+
+.animate-scale-in {
+  animation: scaleIn var(--animation-duration-normal) var(--animation-easing-standard);
+}
+
+.animate-scale-out {
+  animation: scaleOut var(--animation-duration-normal) var(--animation-easing-standard);
+}
+
+/* Staggered Animation Classes */
+.animate-stagger-1 {
+  animation: fadeIn var(--animation-duration-normal) var(--animation-easing-standard) 0ms;
+}
+
+.animate-stagger-2 {
+  animation: fadeIn var(--animation-duration-normal) var(--animation-easing-standard) var(--animation-stagger-base);
+}
+
+.animate-stagger-3 {
+  animation: fadeIn var(--animation-duration-normal) var(--animation-easing-standard) calc(var(--animation-stagger-base) + var(--animation-stagger-increment));
+}
+
+.animate-stagger-4 {
+  animation: fadeIn var(--animation-duration-normal) var(--animation-easing-standard) calc(var(--animation-stagger-base) + 2 * var(--animation-stagger-increment));
+}
+
+.animate-stagger-5 {
+  animation: fadeIn var(--animation-duration-normal) var(--animation-easing-standard) calc(var(--animation-stagger-base) + 3 * var(--animation-stagger-increment));
+}
+
+/* Transition Utility Classes */
+.transition-smooth {
+  transition: all var(--animation-duration-normal) var(--animation-easing-standard);
+}
+
+.transition-fast {
+  transition: all var(--animation-duration-fast) var(--animation-easing-standard);
+}
+
+.transition-slow {
+  transition: all var(--animation-duration-slow) var(--animation-easing-standard);
+}
+
+.transition-layout {
+  transition: all var(--animation-duration-layout) var(--animation-easing-standard);
+}
+
+.transition-colors {
+  transition: color var(--animation-duration-normal) var(--animation-easing-standard),
+              background-color var(--animation-duration-normal) var(--animation-easing-standard),
+              border-color var(--animation-duration-normal) var(--animation-easing-standard);
+}
+
+.transition-transform {
+  transition: transform var(--animation-duration-normal) var(--animation-easing-standard);
+}
+
+.transition-opacity {
+  transition: opacity var(--animation-duration-normal) var(--animation-easing-standard);
+}
+
+/* Layout Transition Classes */
+.transition-grid {
+  transition: grid-template-columns var(--animation-duration-layout) var(--animation-easing-standard),
+              grid-template-rows var(--animation-duration-layout) var(--animation-easing-standard),
+              gap var(--animation-duration-layout) var(--animation-easing-standard);
+}
+
+.transition-size {
+  transition: width var(--animation-duration-layout) var(--animation-easing-standard),
+              height var(--animation-duration-layout) var(--animation-easing-standard),
+              min-width var(--animation-duration-layout) var(--animation-easing-standard),
+              min-height var(--animation-duration-layout) var(--animation-easing-standard),
+              max-width var(--animation-duration-layout) var(--animation-easing-standard),
+              max-height var(--animation-duration-layout) var(--animation-easing-standard);
+}
+
+/* Performance Optimizations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+.will-change-auto {
+  will-change: auto;
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Disable stagger delays */
+  .animate-stagger-1,
+  .animate-stagger-2,
+  .animate-stagger-3,
+  .animate-stagger-4,
+  .animate-stagger-5 {
+    animation-delay: 0ms !important;
+  }
+}
+
+/* Focus and Hover Enhancements */
+.focus-ring {
+  transition: box-shadow var(--animation-duration-fast) var(--animation-easing-standard);
+}
+
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+.hover-lift {
+  transition: transform var(--animation-duration-fast) var(--animation-easing-standard),
+              box-shadow var(--animation-duration-fast) var(--animation-easing-standard);
+}
+
+.hover-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.hover-scale {
+  transition: transform var(--animation-duration-fast) var(--animation-easing-standard);
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+/* Status Indicator Animations */
+@keyframes statusPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes colorTransition {
+  0% {
+    background-color: var(--from-color);
+  }
+  100% {
+    background-color: var(--to-color);
+  }
+}
+
+@keyframes buttonPress {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes buttonHover {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  100% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Status Dot Classes */
+.status-dot {
+  transition: background-color var(--animation-duration-normal) var(--animation-easing-standard),
+              transform var(--animation-duration-fast) var(--animation-easing-standard),
+              opacity var(--animation-duration-normal) var(--animation-easing-standard);
+}
+
+.status-dot-active {
+  animation: statusPulse 2s var(--animation-easing-standard) infinite;
+}
+
+.status-dot-transition {
+  animation: colorTransition var(--animation-duration-slow) var(--animation-easing-standard);
+}
+
+/* Button Micro-animations */
+.button-interactive {
+  transition: transform var(--animation-duration-fast) var(--animation-easing-sharp),
+              box-shadow var(--animation-duration-fast) var(--animation-easing-standard),
+              background-color var(--animation-duration-fast) var(--animation-easing-standard);
+}
+
+.button-interactive:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.button-interactive:active {
+  animation: buttonPress var(--animation-duration-fast) var(--animation-easing-sharp);
+}
+
+.button-primary {
+  transition: transform var(--animation-duration-fast) var(--animation-easing-sharp),
+              box-shadow var(--animation-duration-fast) var(--animation-easing-standard),
+              background-color var(--animation-duration-fast) var(--animation-easing-standard);
+}
+
+.button-primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.button-primary:active {
+  transform: scale(0.95);
+}
+
+.button-secondary {
+  transition: transform var(--animation-duration-fast) var(--animation-easing-sharp),
+              background-color var(--animation-duration-fast) var(--animation-easing-standard),
+              border-color var(--animation-duration-fast) var(--animation-easing-standard);
+}
+
+.button-secondary:hover {
+  transform: scale(1.02);
+}
+
+.button-secondary:active {
+  transform: scale(0.98);
+}
+
+/* Loading and Skeleton Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  background-size: 200px 100%;
+}

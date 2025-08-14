@@ -3,6 +3,7 @@ import { Play, Pause, RotateCcw, SkipForward, Square } from 'lucide-react';
 import type { Task, Settings } from '../App';
 
 import { useColorSystemContext } from '../contexts/ColorSystemContext';
+import { useNotificationContext } from '../contexts/NotificationContext';
 import { getAccentHex } from '../utils/colorSystem';
 
 /**
@@ -72,6 +73,7 @@ function Timer({
   isWidget,
   settings
 }: TimerProps) {
+  const { confirm } = useNotificationContext();
   const colorSystem = useColorSystemContext();
 
   // Get hex value for current accent
@@ -93,11 +95,30 @@ function Timer({
   };
 
   /**
+   * truncateTaskName()
+   * Truncate task name to fit in one line with ellipsis
+   */
+  const truncateTaskName = (name: string, maxLength: number = 25) => {
+    if (name.length <= maxLength) return name;
+    
+    // Find the last space before maxLength to avoid cutting words
+    const truncated = name.substring(0, maxLength);
+    const lastSpace = truncated.lastIndexOf(' ');
+    
+    if (lastSpace > maxLength * 0.6) {
+      return name.substring(0, lastSpace) + '...';
+    }
+    
+    return truncated + '...';
+  };
+
+  /**
    * handleReset()
    * Guarded reset with user confirmation. Calls onReset() when confirmed.
    */
-  const handleReset = () => {
-    if (window.confirm('Are you sure you want to reset the current session? This will not save any progress.')) {
+  const handleReset = async () => {
+    const confirmed = await confirm('Are you sure you want to reset the current session? Progress will not be saved.');
+    if (confirmed) {
       onReset();
     }
   };
@@ -160,10 +181,12 @@ function Timer({
           className={[
             (!isBreak && activeTask) ? 'text-base md:text-lg' : 'text-sm',
             'font-medium mb-2',
+            'whitespace-nowrap overflow-hidden text-ellipsis max-w-full',
             colorTimerOn ? 'text-white' : (theme === 'dark' ? 'text-gray-200' : 'text-gray-800')
           ].join(' ')}
+          title={activeTask?.name} // Show full name on hover
         >
-          {isBreak ? 'RELAX' : (activeTask && activeTask.name ? activeTask.name : 'FOCUS')}
+          {isBreak ? 'RELAX' : (activeTask && activeTask.name ? truncateTaskName(activeTask.name) : 'FOCUS')}
         </div>
 
         {/* Pomodoro Session Progress */}
@@ -248,7 +271,7 @@ function Timer({
                     ? onStop
                     : undefined
             }
-            disabled={!canStart && !canStop && !(isBreak && onSkipBreak && (settings.flowBreakSkipEnabled ?? false))}
+            disabled={!canStart && !canStop && !(isBreak && onSkipBreak && (settings.flowBreakSkipEnabled ?? true))}
             className={`${isWidget ? 'w-14 h-14' : 'w-16 h-16'
               } rounded-full flex items-center justify-center font-semibold transition-all transform animate-fade-in-up ${(() => {
                 if (!(canStart || canStop || (isBreak && onSkipBreak))) {
@@ -338,19 +361,7 @@ function Timer({
             </div>
           )}
 
-        {/* Timer Mode Info */}
-        {isRunning && !isBreak && timerMode === 'timer' && time >= 60 && (
-          <div
-            className={[
-              'mt-4',
-              'flex items-center justify-center',
-              isWidget ? 'text-xs' : 'text-sm',
-              colorTimerOn ? 'text-white/90' : (theme === 'dark' ? 'text-gray-400' : 'text-gray-500')
-            ].join(' ')}
-          >
-            <span className="whitespace-nowrap">Simple timer mode - no breaks</span>
-          </div>
-        )}
+
 
         {/* No Task Warning */}
         {!activeTask && !isWidget && showTasks && requireTaskSelection && (

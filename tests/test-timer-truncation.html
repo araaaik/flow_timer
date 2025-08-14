@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timer Task Name Truncation Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .timer-mock {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .task-name {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+        .timer-display {
+            font-size: 72px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+        .btn {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .test-cases {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .test-case {
+            margin-bottom: 16px;
+            padding: 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+        }
+        .original {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        .truncated {
+            font-weight: 500;
+            color: #333;
+        }
+        .length-info {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Timer Task Name Truncation Test</h1>
+        
+        <div class="timer-mock">
+            <div class="task-name" id="currentTaskName">Implement new authentication system...</div>
+            <div class="timer-display">02:55</div>
+            <div class="controls">
+                <button class="btn">⏸</button>
+                <button class="btn">↻</button>
+            </div>
+        </div>
+        
+        <div class="test-cases">
+            <h3>Test Cases</h3>
+            <div id="testCases"></div>
+        </div>
+        
+        <div style="text-align: center;">
+            <button onclick="cycleTestCases()" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Cycle Test Cases
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function truncateTaskName(name, maxLength = 25) {
+            if (name.length <= maxLength) return name;
+            
+            // Find the last space before maxLength to avoid cutting words
+            const truncated = name.substring(0, maxLength);
+            const lastSpace = truncated.lastIndexOf(' ');
+            
+            if (lastSpace > maxLength * 0.6) {
+                return name.substring(0, lastSpace) + '...';
+            }
+            
+            return truncated + '...';
+        }
+
+        const testCases = [
+            "Review code",
+            "Implement new authentication system",
+            "Implement new authentication system with OAuth2 and JWT tokens",
+            "Create comprehensive documentation for the new API endpoints including examples",
+            "Сделай чтобы карточки в тасках хорошо отображались в режиме компакт",
+            "Кнопка Add Task при нажатии должна сменяться на полную форму добавления задачи",
+            "Fix bug in user authentication flow when using social login providers like Google and Facebook",
+            "A very short task",
+            "Medium length task name that should be truncated nicely",
+            "This is an extremely long task name that definitely needs to be truncated because it would not fit in a single line and would look terrible in the timer display"
+        ];
+
+        let currentIndex = 0;
+
+        function displayTestCases() {
+            const container = document.getElementById('testCases');
+            container.innerHTML = '';
+            
+            testCases.forEach((testCase, index) => {
+                const truncated = truncateTaskName(testCase);
+                const div = document.createElement('div');
+                div.className = 'test-case';
+                div.innerHTML = `
+                    <div class="original">Original (${testCase.length} chars): ${testCase}</div>
+                    <div class="truncated">Truncated: ${truncated}</div>
+                    <div class="length-info">Result length: ${truncated.length} chars</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function cycleTestCases() {
+            const taskNameElement = document.getElementById('currentTaskName');
+            const truncated = truncateTaskName(testCases[currentIndex]);
+            taskNameElement.textContent = truncated;
+            
+            currentIndex = (currentIndex + 1) % testCases.length;
+        }
+
+        // Initialize
+        displayTestCases();
+        cycleTestCases();
+    </script>
+</body>
+</html>

@@ -24,10 +24,21 @@ The project is configured for automatic deployment to GitHub Pages using GitHub 
 The deployment process is defined in the `.github/workflows/deploy.yml` file.
 
 
+## Features
+
+- **Unified Time Format**: All time displays use H:MM format (e.g., "1:30", "0:15", "5:45") for consistency across the application
+- **Task Management**: Create, track, and manage tasks with time goals
+- **Session History**: Comprehensive statistics and history with day/week/month views
+- **Data Export/Import**: CSV export for analysis, smart import with historical data preservation
+- **Customizable Themes**: Light/dark themes with accent color customization
+- **Break System**: Automatic break suggestions based on work time
+- **Music Integration**: Built-in music player for focus sessions
+
 ## Docs
 
 - Architecture overview: [docs/Architecture.md](docs/Architecture.md)
 - Public API reference: [docs/API.md](docs/API.md)
+- Data management guide: [docs/data-management.md](docs/data-management.md)
 - Timer system guide: [docs/timer-system.md](docs/timer-system.md)
 - Timer mode documentation: [docs/timer-mode.md](docs/timer-mode.md)
 - Accent usage guideline: [docs/accent-usage.md](docs/accent-usage.md)

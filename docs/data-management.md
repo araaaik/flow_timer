@@ -48,6 +48,7 @@ Available export options:
 ### Key Features
 - **Smart Date Parsing**: Supports multiple date formats (DD-MM-YY, YYYY-MM-DD)
 - **Historical Data Preservation**: Imported sessions maintain their original dates
+- **Unified Time Format**: All time displays use H:MM format (e.g., "1:30", "0:15", "5:45")
 - **Intelligent Task Creation**: Tasks created with correct timeSpent and historical creation dates
 - **Task Visibility Logic**: Only tasks with today's activity or created today appear in task list
 
@@ -282,3 +283,46 @@ When importing a CSV file with historical sessions (e.g., from July 2025):
 - Date parsing assumes 20XX for two-digit years
 - Maximum file size limited by browser memory
 - Tasks without today's activity are hidden from main task list (accessible in History)
+#
+# Time Format
+
+### Display Format
+FLOW uses a unified **H:MM** time format throughout the application for consistency and readability:
+
+- **Hours and minutes**: `1:30` (1 hour 30 minutes)
+- **Minutes only**: `0:15` (15 minutes)
+- **Long sessions**: `5:45` (5 hours 45 minutes)
+
+### Format Examples
+| Duration (seconds) | Display Format | Description |
+|-------------------|----------------|-------------|
+| 900 | `0:15` | 15 minutes |
+| 1800 | `0:30` | 30 minutes |
+| 3600 | `1:00` | 1 hour |
+| 5400 | `1:30` | 1 hour 30 minutes |
+| 18000 | `5:00` | 5 hours |
+| 20700 | `5:45` | 5 hours 45 minutes |
+
+### Application Areas
+The H:MM format is used consistently across:
+
+- **Statistics & History**: All time displays in day/week/month views
+- **Task Manager**: Time spent on tasks
+- **Export Data**: CSV files use H:MM format in "Duration (time)" column
+- **Main Interface**: Today's total time display
+
+### Timer Display
+The active timer uses a different format for precision during work sessions:
+- **Timer format**: `MM:SS` (minutes:seconds) or `H:MM:SS` (hours:minutes:seconds)
+- **History format**: `H:MM` (hours:minutes) for completed sessions
+
+### Data Storage
+- **Internal storage**: Time is stored in seconds for accuracy
+- **Display conversion**: Seconds are converted to H:MM format when displayed
+- **Export compatibility**: Both seconds and H:MM format included in CSV exports
+
+### Benefits
+- **Consistency**: Same format across all views and exports
+- **Readability**: Easy to scan and compare time values
+- **Professional**: Clean appearance suitable for reports and analysis
+- **International**: Works well across different locales and languages

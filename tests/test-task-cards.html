@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Cards Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .layout-toggle {
+            margin-bottom: 20px;
+        }
+        .layout-toggle button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            background: white;
+            cursor: pointer;
+        }
+        .layout-toggle button.active {
+            background: #007bff;
+            color: white;
+        }
+        .task-grid {
+            display: grid;
+            gap: 16px;
+        }
+        .task-grid.compact {
+            grid-template-columns: 1fr 1fr;
+        }
+        .task-grid.full {
+            grid-template-columns: 1fr;
+        }
+        .task-card {
+            background: white;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .task-card:hover {
+            background: #f8f9fa;
+        }
+        .task-card.active {
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .task-name {
+            font-weight: 600;
+            flex: 1;
+            min-width: 0;
+        }
+        .task-name.compact {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+            line-height: 1.3;
+        }
+        .task-name.full {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .task-badge {
+            background: #007bff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        .delete-btn:hover {
+            background: #f0f0f0;
+            color: #dc3545;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #007bff;
+            transition: width 0.3s;
+        }
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Task Cards Layout Test</h1>
+        
+        <div class="layout-toggle">
+            <button id="compactBtn" class="active">Compact</button>
+            <button id="fullBtn">Full</button>
+        </div>
+        
+        <div id="taskGrid" class="task-grid compact">
+            <!-- Short task -->
+            <div class="task-card">
+                <div class="task-header">
+                    <div class="task-name compact">Review code</div>
+                    <div class="task-badge">1:23</div>
+                    <button class="delete-btn">×</button>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 45%"></div>
+                </div>
+                <div class="progress-info">
+                    <span>Goal: 2h 0m</span>
+                    <span>45%</span>
+                </div>
+            </div>
+            
+            <!-- Long task name -->
+            <div class="task-card active">
+                <div class="task-header">
+                    <div class="task-name compact">Implement new authentication system with OAuth2 and JWT tokens for better security</div>
+                    <div class="task-badge">3:45</div>
+                    <button class="delete-btn">×</button>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 75%"></div>
+                </div>
+                <div class="progress-info">
+                    <span>Goal: 5h 0m</span>
+                    <span>75%</span>
+                </div>
+            </div>
+            
+            <!-- Very long task name -->
+            <div class="task-card">
+                <div class="task-header">
+                    <div class="task-name compact">Create comprehensive documentation for the new API endpoints including examples, error handling, rate limiting, authentication requirements, and best practices for integration with third-party services</div>
+                    <div class="task-badge">0:42</div>
+                    <button class="delete-btn">×</button>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 15%"></div>
+                </div>
+                <div class="progress-info">
+                    <span>Goal: 4h 30m</span>
+                    <span>15%</span>
+                </div>
+            </div>
+            
+            <!-- Task without goal -->
+            <div class="task-card">
+                <div class="task-header">
+                    <div class="task-name compact">Quick bug fix</div>
+                    <div class="task-badge">0:15</div>
+                    <button class="delete-btn">×</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const compactBtn = document.getElementById('compactBtn');
+        const fullBtn = document.getElementById('fullBtn');
+        const taskGrid = document.getElementById('taskGrid');
+        const taskNames = document.querySelectorAll('.task-name');
+
+        function setLayout(layout) {
+            if (layout === 'compact') {
+                compactBtn.classList.add('active');
+                fullBtn.classList.remove('active');
+                taskGrid.className = 'task-grid compact';
+                taskNames.forEach(name => {
+                    name.className = 'task-name compact';
+                });
+            } else {
+                fullBtn.classList.add('active');
+                compactBtn.classList.remove('active');
+                taskGrid.className = 'task-grid full';
+                taskNames.forEach(name => {
+                    name.className = 'task-name full';
+                });
+            }
+        }
+
+        compactBtn.addEventListener('click', () => setLayout('compact'));
+        fullBtn.addEventListener('click', () => setLayout('full'));
+    </script>
+</body>
+</html>

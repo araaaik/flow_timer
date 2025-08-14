@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { X, Download, Trash2, Search, Calendar, BarChart3, Settings, ChevronLeft, ChevronRight, TrendingUp, Activity } from 'lucide-react';
+import { X, Download, Trash2, Search, Calendar, BarChart3, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Task, Session } from '../App';
 import { useColorSystemContext } from '../contexts/ColorSystemContext';
+import { useNotificationContext } from '../contexts/NotificationContext';
 import { getAccentHex } from '../utils/colorSystem';
 import DataManager from './DataManager';
-import { exportToCSV, getPresetDateRanges, type DateRange } from '../utils/dataManager';
+import { exportToCSV, formatTime as formatTimeUtil, type DateRange } from '../utils/dataManager';
 
 /**
  * History.tsx
@@ -54,9 +55,8 @@ function History({
   const [selectedDate, setSelectedDate] = useState(new Date().toDateString());
   const [view, setView] = useState<'day' | 'week' | 'month'>('day');
   const [showDataManager, setShowDataManager] = useState(false);
-  const [showQuickExport, setShowQuickExport] = useState(false);
-  const [exportPeriod, setExportPeriod] = useState<'all' | 'custom'>('all');
   const [showSearch, setShowSearch] = useState(false);
+  const { confirm } = useNotificationContext();
   
   // Get hex value for current accent
   const colorSystem = useColorSystemContext();
@@ -93,12 +93,8 @@ function History({
     setSearchTask('');
   }, [view]);
 
-  /** formatTime() -> "H:MM" or "Xm" when under 1h */
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    return hours > 0 ? `${hours}:${mins.toString().padStart(2, '0')}` : `${mins}m`;
-  };
+  // Use unified formatTime from utils
+  const formatTime = formatTimeUtil;
 
   /**
    * getDayStats()
@@ -175,98 +171,7 @@ function History({
     return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   };
 
-  /**
-   * Productivity Analysis Functions
-   */
-  const getProductivityData = () => {
-    // Get last 30 days of data
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(today.getDate() - 29);
-    
-    const dailyData = [];
-    const currentDate = new Date(thirtyDaysAgo);
-    
-    while (currentDate <= today) {
-      const dateStr = currentDate.toDateString();
-      const dayStats = getDayStats(dateStr);
-      const dayOfWeek = (currentDate.getDay() + 6) % 7; // 0 = Monday, 6 = Sunday
-      
-      dailyData.push({
-        date: dateStr,
-        dateObj: new Date(currentDate),
-        totalTime: dayStats.totalTime,
-        sessionCount: dayStats.sessionCount,
-        avgSession: dayStats.avgSession,
-        dayOfWeek,
-        isWeekend: dayOfWeek === 5 || dayOfWeek === 6 // Saturday and Sunday
-      });
-      
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-    
-    return dailyData;
-  };
 
-  const getProductivityStats = () => {
-    const data = getProductivityData();
-    const workDays = data.filter(d => !d.isWeekend && d.totalTime > 0);
-    const allDays = data.filter(d => d.totalTime > 0);
-    
-    if (allDays.length === 0) {
-      return {
-        avgDaily: 0,
-        maxDaily: 0,
-        totalDays: 0,
-        streak: 0,
-        bestDay: null,
-        productivity: 'No data'
-      };
-    }
-    
-    const totalTime = allDays.reduce((sum, d) => sum + d.totalTime, 0);
-    const avgDaily = totalTime / allDays.length;
-    const maxDaily = Math.max(...allDays.map(d => d.totalTime));
-    const bestDay = allDays.find(d => d.totalTime === maxDaily);
-    
-    // Calculate current streak
-    let streak = 0;
-    for (let i = data.length - 1; i >= 0; i--) {
-      if (data[i].totalTime > 0) {
-        streak++;
-      } else {
-        break;
-      }
-    }
-    
-    // Productivity level based on consistency and volume
-    const consistency = allDays.length / 30; // How many days out of 30
-    const avgHours = avgDaily / 3600;
-    let productivity = 'Low';
-    
-    if (consistency > 0.8 && avgHours > 4) productivity = 'Excellent';
-    else if (consistency > 0.6 && avgHours > 3) productivity = 'Good';
-    else if (consistency > 0.4 && avgHours > 2) productivity = 'Fair';
-    
-    return {
-      avgDaily,
-      maxDaily,
-      totalDays: allDays.length,
-      streak,
-      bestDay,
-      productivity,
-      consistency: Math.round(consistency * 100)
-    };
-  };
-
-  const getIntensityColor = (totalTime: number, maxTime: number) => {
-    if (totalTime === 0) return theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100';
-    
-    const intensity = totalTime / maxTime;
-    const opacity = Math.max(0.2, Math.min(1, intensity));
-    
-    return `bg-current opacity-${Math.round(opacity * 10) * 10}`;
-  };
 
   /**
    * handleQuickExport()
@@ -306,21 +211,23 @@ function History({
   };
 
   /** handleDeleteDay(): confirm and delegate day deletion */
-  const handleDeleteDay = () => {
-    if (window.confirm(`Delete all sessions for ${selectedDate}? This cannot be undone.`)) {
+  const handleDeleteDay = async () => {
+    const confirmed = await confirm(`Delete all sessions for ${selectedDate}? This cannot be undone.`);
+    if (confirmed) {
       onDeleteDay(selectedDate);
     }
   };
 
   /** handleDeleteSession(): confirm and delegate single session deletion */
-  const handleDeleteSession = (sessionId: string) => {
-    if (window.confirm('Delete this session? This cannot be undone.')) {
+  const handleDeleteSession = async (sessionId: string) => {
+    const confirmed = await confirm('Delete this session? This cannot be undone.');
+    if (confirmed) {
       onDeleteSession(sessionId);
     }
   };
 
   const dayStats = getDayStats(selectedDate);
-  const weekDates = getWeekDates(new Date(selectedDate));
+  const weekDates = React.useMemo(() => getWeekDates(new Date(selectedDate)), [selectedDate]);
 
   // Task search
   const taskSessions = searchTask
@@ -587,10 +494,25 @@ function History({
           {view === 'day' && (
             <div>
               {/* Day Header */}
-              <div className="text-center mb-6">
-                <h3 className="text-lg font-semibold">
-                  {getCurrentPeriodText()}
-                </h3>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex-1 text-center">
+                  <h3 className="text-lg font-semibold">
+                    {getCurrentPeriodText()}
+                  </h3>
+                </div>
+                {dayStats.sessionCount > 0 && (
+                  <button
+                    onClick={handleDeleteDay}
+                    className={`p-2 rounded-lg transition-colors ${
+                      theme === 'dark'
+                        ? 'text-gray-400 hover:text-red-400 hover:bg-gray-700'
+                        : 'text-gray-500 hover:text-red-500 hover:bg-gray-100'
+                    }`}
+                    title="Delete all sessions for this day"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
 
               {/* Day Stats */}
@@ -621,22 +543,7 @@ function History({
                 </div>
               </div>
 
-              {/* Actions */}
-              {dayStats.sessionCount > 0 && (
-                <div className="flex flex-wrap gap-2 mb-6">
-                  <button
-                    onClick={handleDeleteDay}
-                    className={`flex items-center px-3 py-2 rounded-lg text-sm ${
-                      theme === 'dark'
-                        ? 'bg-gray-600 hover:bg-gray-500 text-gray-200'
-                        : 'bg-gray-500 hover:bg-gray-600 text-white'
-                    }`}
-                  >
-                    <Trash2 size={14} className="mr-1" />
-                    Delete Day
-                  </button>
-                </div>
-              )}
+
 
               {/* Sessions List */}
               <div className="space-y-2">
@@ -679,105 +586,116 @@ function History({
 
           {view === 'week' && (
             <div>
-              {/* Weekly Pattern Analysis */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold flex items-center mb-4">
-                  <Activity size={20} className="mr-2 history-accent-text" />
-                  Weekly Pattern Analysis
-                </h3>
-                
+              {/* Week Stats Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 {(() => {
-                  const productivityData = getProductivityData();
-                  const maxDayTime = Math.max(...productivityData.map(d => d.totalTime), 1);
+                  const weekStats = weekDates.map(date => getDayStats(date));
+                  const weekTotal = weekStats.reduce((sum, s) => sum + s.totalTime, 0);
+                  const weekSessions = weekStats.reduce((sum, s) => sum + s.sessionCount, 0);
+                  const activeDays = weekStats.filter(s => s.totalTime > 0).length;
+                  const avgDaily = activeDays > 0 ? weekTotal / activeDays : 0;
                   
                   return (
-                    <div className="space-y-6">
-                      {/* Weekly Bar Chart */}
-                      <div>
-                        <h4 className="text-md font-medium mb-4">Average Time by Day of Week</h4>
-                        <div className="grid grid-cols-7 gap-3" style={{ alignItems: 'end', display: 'flex' }}>
-                          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((dayName, dayIndex) => {
-                            const dayData = productivityData.filter(d => d.dayOfWeek === dayIndex);
-                            const avgTime = dayData.length > 0 
-                              ? dayData.reduce((sum, d) => sum + d.totalTime, 0) / dayData.length 
-                              : 0;
-                            const height = Math.max(30, (avgTime / maxDayTime) * 120);
-                            const isWeekend = dayIndex === 5 || dayIndex === 6; // Saturday and Sunday
-                            
-                            return (
-                              <button
-                                key={dayName}
-                                onClick={() => {
-                                  // Find a day of this weekday in current week and navigate to it
-                                  const targetDate = weekDates.find(date => (new Date(date).getDay() + 6) % 7 === dayIndex);
-                                  if (targetDate) {
-                                    setSelectedDate(targetDate);
-                                    setView('day');
-                                  }
-                                }}
-                                className="text-center flex-1 transition-all hover:scale-105"
-                              >
-                                <div 
-                                  className={`rounded-t mx-auto mb-3 transition-all ${
-                                    isWeekend ? 'opacity-60' : ''
-                                  }`}
-                                  style={{ 
-                                    width: '32px', 
-                                    height: `${height}px`,
-                                    backgroundColor: accentHex,
-                                    opacity: avgTime > 0 ? 0.8 : 0.2
-                                  }}
-                                />
-                                <div className="text-xs opacity-75 mb-1">{dayName.slice(0, 3)}</div>
-                                <div className="text-sm font-medium">{formatTime(Math.round(avgTime))}</div>
-                              </button>
-                            );
-                          })}
-                        </div>
+                    <>
+                      <div className="p-4 rounded-lg text-white history-stat-card">
+                        <div className="text-2xl font-bold">{formatTime(weekTotal)}</div>
+                        <div className="text-sm opacity-80">Week Total</div>
                       </div>
-
-                      {/* Week Stats */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {(() => {
-                          const weekStats = weekDates.map(date => getDayStats(date));
-                          const weekTotal = weekStats.reduce((sum, s) => sum + s.totalTime, 0);
-                          const weekSessions = weekStats.reduce((sum, s) => sum + s.sessionCount, 0);
-                          const activeDays = weekStats.filter(s => s.totalTime > 0).length;
-                          const avgDaily = activeDays > 0 ? weekTotal / activeDays : 0;
-                          
-                          return (
-                            <>
-                              <div className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-1 history-stat-card">
-                                <div className="text-2xl font-bold text-white">
-                                  {formatTime(weekTotal)}
-                                </div>
-                                <div className="text-sm text-white/80">Week Total</div>
-                              </div>
-                              <div className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-2 history-stat-card">
-                                <div className="text-2xl font-bold text-white">
-                                  {weekSessions}
-                                </div>
-                                <div className="text-sm text-white/80">Sessions</div>
-                              </div>
-                              <div className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-3 history-stat-card">
-                                <div className="text-2xl font-bold text-white">
-                                  {activeDays}
-                                </div>
-                                <div className="text-sm text-white/80">Active Days</div>
-                              </div>
-                              <div className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-4 history-stat-card">
-                                <div className="text-2xl font-bold text-white">
-                                  {formatTime(Math.round(avgDaily))}
-                                </div>
-                                <div className="text-sm text-white/80">Avg Daily</div>
-                              </div>
-                            </>
-                          );
-                        })()}
+                      <div className="p-4 rounded-lg text-white history-stat-card">
+                        <div className="text-2xl font-bold">{weekSessions}</div>
+                        <div className="text-sm opacity-80">Sessions</div>
                       </div>
-                    </div>
+                      <div className="p-4 rounded-lg text-white history-stat-card">
+                        <div className="text-2xl font-bold">{activeDays}</div>
+                        <div className="text-sm opacity-80">Active Days</div>
+                      </div>
+                      <div className="p-4 rounded-lg text-white history-stat-card">
+                        <div className="text-2xl font-bold">{formatTime(Math.round(avgDaily))}</div>
+                        <div className="text-sm opacity-80">Avg Daily</div>
+                      </div>
+                    </>
                   );
                 })()}
+              </div>
+
+              {/* Week Bar Chart */}
+              <div className="w-full px-4">
+                <div className="flex justify-between items-end mb-4" style={{ height: '120px' }}>
+                  {weekDates.map((dateStr, index) => {
+                    const dayStats = getDayStats(dateStr);
+                    const isToday = dateStr === new Date().toDateString();
+                    const isSelected = dateStr === selectedDate;
+                    
+                    // Calculate height based on time (max 100px for bars)
+                    const maxTime = Math.max(...weekDates.map(d => getDayStats(d).totalTime), 1);
+                    const barHeight = Math.max(15, (dayStats.totalTime / maxTime) * 100);
+                    
+                    return (
+                      <button
+                        key={dateStr}
+                        onClick={() => {
+                          setSelectedDate(dateStr);
+                          setView('day');
+                        }}
+                        className="transition-all hover:scale-105 flex-1 max-w-[60px]"
+                      >
+                        <div 
+                          className={`rounded-t-lg transition-all mx-auto ${
+                            isSelected ? 'ring-2 ring-white' : ''
+                          } ${
+                            isToday ? 'ring-2 ring-white ring-opacity-60' : ''
+                          }`}
+                          style={{ 
+                            width: '50px', 
+                            height: `${barHeight}px`,
+                            backgroundColor: dayStats.totalTime > 0 ? accentHex : (theme === 'dark' ? '#374151' : '#E5E7EB'),
+                            opacity: dayStats.totalTime > 0 ? 0.9 : 0.3
+                          }}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                {/* Day Labels */}
+                <div className="flex justify-between">
+                  {weekDates.map((dateStr, index) => {
+                    const date = new Date(dateStr);
+                    const dayName = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index];
+                    const dayStats = getDayStats(dateStr);
+                    const isToday = dateStr === new Date().toDateString();
+                    
+                    return (
+                      <button
+                        key={`label-${dateStr}`}
+                        onClick={() => {
+                          setSelectedDate(dateStr);
+                          setView('day');
+                        }}
+                        className={`text-center flex-1 max-w-[60px] p-2 rounded-lg transition-all hover:scale-105 h-20 flex flex-col justify-center border-2 ${
+                          isToday
+                            ? theme === 'dark' 
+                              ? 'history-accent-border hover:bg-gray-700'
+                              : 'history-accent-border hover:bg-gray-100'
+                            : theme === 'dark' 
+                              ? 'border-transparent hover:bg-gray-700' 
+                              : 'border-transparent hover:bg-gray-100'
+                        }`}
+                        title={`View details for ${dayName}, ${date.toLocaleDateString()}${isToday ? ' (Today)' : ''}`}
+                      >
+                        <div className="text-xs mb-1 opacity-75">
+                          {dayName}
+                        </div>
+                        <div className="text-lg font-bold mb-1">
+                          {date.getDate()}
+                        </div>
+                        <div className="text-sm font-medium history-accent-text">
+                          {dayStats.totalTime > 0 ? formatTime(dayStats.totalTime) : '0m'}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -882,7 +800,7 @@ function History({
                                   setSelectedDate(dayString);
                                   setView('day');
                                 }}
-                                className={`aspect-square rounded text-sm font-medium transition-all hover:scale-105 relative flex flex-col items-center justify-center group ${
+                                className={`aspect-square rounded font-medium transition-all hover:scale-105 relative flex flex-col items-center justify-center p-1 ${
                                   isSelected
                                     ? 'ring-2 ring-white'
                                     : ''
@@ -899,11 +817,11 @@ function History({
                                 {isToday && (
                                   <div className="absolute inset-0 border-2 border-white rounded"></div>
                                 )}
-                                <span className="text-white font-medium mb-1">
+                                <span className="text-white font-bold text-base mb-1">
                                   {day.getDate()}
                                 </span>
                                 {totalTime > 0 && (
-                                  <div className="text-xs text-white/90 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="text-xs text-white/90 font-medium">
                                     {formatTime(totalTime)}
                                   </div>
                                 )}

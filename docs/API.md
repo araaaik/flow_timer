@@ -241,3 +241,64 @@ Source: [`src.App.tsx`](src/App.tsx)
 - Extend statistics:
   - Aggregation functions live in [`src.components.History.tsx`](src/components/History.tsx)
   - Consider normalizing dates and timezones as needed
+
+## Utilities
+
+### formatTime(seconds: number): string
+Source: [`src/utils/dataManager.ts`](src/utils/dataManager.ts)
+
+Converts seconds to unified H:MM display format used throughout the application.
+
+**Parameters:**
+- `seconds: number` - Duration in seconds
+
+**Returns:**
+- `string` - Formatted time string in H:MM format
+
+**Examples:**
+```typescript
+formatTime(900)   // "0:15" (15 minutes)
+formatTime(1800)  // "0:30" (30 minutes) 
+formatTime(3600)  // "1:00" (1 hour)
+formatTime(5400)  // "1:30" (1 hour 30 minutes)
+formatTime(18000) // "5:00" (5 hours)
+formatTime(20700) // "5:45" (5 hours 45 minutes)
+```
+
+**Usage:**
+- **Statistics & History**: All time displays in day/week/month views
+- **Task Manager**: Time spent on tasks
+- **Export Data**: CSV files use this format in "Duration (time)" column
+- **Main Interface**: Today's total time display
+
+**Format Rules:**
+- Always shows hours and minutes in H:MM format
+- Minutes under 60 show as "0:MM"
+- Hours 1+ show as "H:MM" with zero-padded minutes
+- Seconds are truncated (not rounded)
+
+**Note:** The active timer uses a different format (`MM:SS` or `H:MM:SS`) for precision during work sessions, but completed sessions always display in H:MM format.
+
+## Time Format Standards
+
+### Display Format
+FLOW uses a unified **H:MM** time format throughout the application:
+
+| Context | Format | Example | Description |
+|---------|--------|---------|-------------|
+| History Views | H:MM | `1:30` | Completed sessions |
+| Task Manager | H:MM | `0:45` | Time spent on tasks |
+| Statistics | H:MM | `5:15` | Aggregated time data |
+| Export Data | H:MM | `2:30` | CSV duration column |
+| Active Timer | MM:SS or H:MM:SS | `25:30` | Live timer display |
+
+### Data Storage
+- **Internal**: Time stored as seconds (number) for accuracy
+- **Display**: Converted to H:MM format using `formatTime()` utility
+- **Export**: Both seconds and H:MM format included in CSV files
+
+### Consistency Benefits
+- **Unified Experience**: Same format across all views and exports
+- **Easy Scanning**: Quick comparison of time values
+- **Professional Output**: Clean appearance for reports and analysis
+- **Locale Independent**: Works across different regions and languages

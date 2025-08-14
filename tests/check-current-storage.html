@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Current Storage</title>
+</head>
+<body>
+    <h1>Current localStorage State</h1>
+    <div id="output"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        
+        // Check all flow-related keys
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('flow-')) {
+                keys.push(key);
+            }
+        }
+        
+        output.innerHTML = '<h2>All flow-* keys:</h2>';
+        keys.forEach(key => {
+            const value = localStorage.getItem(key);
+            output.innerHTML += `<h3>${key}:</h3>`;
+            output.innerHTML += `<pre>${value}</pre>`;
+            
+            if (key === 'flow-task-history') {
+                try {
+                    const parsed = JSON.parse(value);
+                    output.innerHTML += `<p>Parsed length: ${parsed.length}</p>`;
+                    output.innerHTML += `<p>Items: ${parsed.join(', ')}</p>`;
+                } catch (e) {
+                    output.innerHTML += `<p>Parse error: ${e.message}</p>`;
+                }
+            }
+        });
+        
+        if (keys.length === 0) {
+            output.innerHTML += '<p>No flow-* keys found</p>';
+        }
+    </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, Settings, Music, Moon, Sun, Minimize2, Maximize2, Layout, Columns } from 'lucide-react';
+import { Play, Pause, Settings, Music, Moon, Sun, Minimize2, Maximize2, Layout, PanelTop } from 'lucide-react';
 import Timer from './components/Timer';
 import TaskManager from './components/TaskManager';
 import History from './components/History';
@@ -13,8 +13,10 @@ import { useTheme } from './hooks/useTheme';
 import { useMusicPlayer } from './hooks/useMusicPlayer';
 import { getAccentHex, getAccentClasses } from './utils/colorSystem';
 import { runStorageCleanup } from './utils/storageCleanup';
+import { formatTime } from './utils/dataManager';
 
 import { ColorSystemProvider, useColorSystemContext } from './contexts/ColorSystemContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 /**
  * Task
@@ -194,11 +196,32 @@ function AppContent() {
   }, []);
 
   const handleTaskAdd = (name: string, estimatedTime?: number) => {
-    if (!taskHistory.includes(name)) {
-      setTaskHistory(prev => [...prev, name]);
+    if (!taskHistory?.includes(name)) {
+      setTaskHistory(prev => [...(prev || []), name]);
     }
     addTask(name, estimatedTime);
   };
+
+  // Sync task history with existing tasks on app load
+  useEffect(() => {
+    const syncTaskHistory = () => {
+      const existingTaskNames = tasks.map(task => task.name);
+      const currentHistory = taskHistory || [];
+      
+      // Find task names that exist in tasks but not in history
+      const missingFromHistory = existingTaskNames.filter(name => !currentHistory.includes(name));
+      
+      if (missingFromHistory.length > 0) {
+        console.log('Syncing task history, adding:', missingFromHistory);
+        setTaskHistory(prev => [...(prev || []), ...missingFromHistory]);
+      }
+    };
+
+    // Only sync if we have tasks but empty/incomplete history
+    if (tasks.length > 0) {
+      syncTaskHistory();
+    }
+  }, [tasks, taskHistory, setTaskHistory]);
 
   const updateSettings = (newSettings: Partial<Settings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
@@ -278,7 +301,7 @@ function AppContent() {
                 <h1 className="text-2xl font-bold">FLOW</h1>
                 {todaysTime > 0 && (
                   <div className="hidden sm:block text-lg text-gray-500">
-                    {Math.floor(todaysTime / 3600)}h {Math.floor((todaysTime % 3600) / 60)}m today
+                    {formatTime(todaysTime)} today
                   </div>
                 )}
               </div>
@@ -330,7 +353,7 @@ function AppContent() {
                   title={layout === 'compact' ? 'Switch to full mode' : 'Switch to compact mode'}
                   aria-label="Toggle layout mode"
                 >
-                  {layout === 'compact' ? <Columns size={18} /> : <Layout size={18} />}
+                  {layout === 'compact' ? <PanelTop size={18} /> : <Layout size={18} />}
                 </button>
               )}
 
@@ -375,7 +398,7 @@ function AppContent() {
               />
               {todaysTime > 0 && (
                 <div className="text-sm text-gray-500">
-                  {Math.floor(todaysTime / 3600)}h {Math.floor((todaysTime % 3600) / 60)}m today
+                  {formatTime(todaysTime)} today
                 </div>
               )}
               </div>
@@ -624,7 +647,9 @@ function AppContent() {
 function App() {
   return (
     <ColorSystemProvider>
-      <AppContent />
+      <NotificationProvider>
+        <AppContent />
+      </NotificationProvider>
     </ColorSystemProvider>
   );
 }

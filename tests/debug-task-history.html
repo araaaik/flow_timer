@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Task History</title>
+</head>
+<body>
+    <h1>Task History Debug</h1>
+    <div id="output"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        
+        // Check task history
+        const taskHistory = localStorage.getItem('flow-task-history');
+        output.innerHTML += '<h2>Task History:</h2>';
+        output.innerHTML += '<pre>' + (taskHistory || 'null') + '</pre>';
+        
+        if (taskHistory) {
+            try {
+                const parsed = JSON.parse(taskHistory);
+                output.innerHTML += '<h3>Parsed:</h3>';
+                output.innerHTML += '<pre>' + JSON.stringify(parsed, null, 2) + '</pre>';
+                output.innerHTML += '<p>Length: ' + parsed.length + '</p>';
+            } catch (e) {
+                output.innerHTML += '<p>Error parsing: ' + e.message + '</p>';
+            }
+        }
+        
+        // Check all localStorage keys
+        output.innerHTML += '<h2>All localStorage keys:</h2>';
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('flow-')) {
+                output.innerHTML += '<p><strong>' + key + ':</strong> ' + localStorage.getItem(key) + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

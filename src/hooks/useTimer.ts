@@ -567,7 +567,7 @@ export function useTimer(
         }
       }
     } else if (timerMode === 'timer') {
-      // Timer mode: just stop and reset (no breaks)
+      // Timer mode: just stop and reset (no breaks, no sounds)
       setTimerState(prev => ({
         ...prev,
         isRunning: false,
@@ -576,7 +576,7 @@ export function useTimer(
         targetTime: undefined,
       }));
       
-      playNotification();
+      // No notification sounds or visual notifications for timer mode
       if (settings.visualNotifications) {
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification('Timer stopped!', {
