@@ -103,8 +103,8 @@ function TaskManager({
   return (
     <>
       <style>{`
-        .task-accent-ring {
-          box-shadow: 0 0 0 2px var(--accent-color);
+        .task-accent-border {
+          border: 2px solid var(--accent-color) !important;
         }
         .task-accent-bg {
           background-color: var(--accent-color) !important;
@@ -217,11 +217,11 @@ function TaskManager({
                       onSelectTask(task);
                     }
                   }}
-                  className={`rounded-lg animate-fade-in-up cursor-pointer transition-all duration-240 ease-out-smooth ${
+                  className={`rounded-lg animate-slide-in-up cursor-pointer transition-colors duration-240 ease-out-smooth ${
                     layout === 'compact' ? 'min-h-[3rem]' : 'min-h-10'
                   } ${
                     activeTask?.id === task.id
-                      ? 'task-accent-ring'
+                      ? 'task-accent-border'
                       : theme === 'dark'
                         ? 'border border-gray-600 bg-gray-700/50 hover:bg-gray-700'
                         : 'border border-gray-200 bg-gray-50 hover:bg-gray-100'

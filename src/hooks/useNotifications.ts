@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { NotificationProps } from '../components/Notification';
+import { soundManager } from '../utils/soundManager';
 
 interface NotificationOptions {
   type?: 'success' | 'error' | 'warning' | 'info' | 'confirm';
@@ -9,8 +10,30 @@ interface NotificationOptions {
   onCancel?: () => void;
 }
 
-export const useNotifications = () => {
+interface SoundSettings {
+  audioNotifications?: boolean;
+  soundVolume?: number;
+  notificationSound?: string;
+}
+
+export const useNotifications = (soundSettings?: SoundSettings) => {
   const [notifications, setNotifications] = useState<NotificationProps[]>([]);
+
+  const playNotificationSound = useCallback(async () => {
+    if (!soundSettings?.audioNotifications) return;
+    
+    const soundId = soundSettings.notificationSound || 'default';
+    const volume = soundSettings.soundVolume ?? 0.5;
+    
+    const sound = soundManager.findSoundById(soundId);
+    if (sound) {
+      try {
+        await soundManager.playNotificationSound(sound.url, volume);
+      } catch (error) {
+        console.warn('Failed to play notification sound:', error);
+      }
+    }
+  }, [soundSettings]);
 
   const addNotification = useCallback((title: string, options: NotificationOptions = {}) => {
     const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
@@ -27,8 +50,14 @@ export const useNotifications = () => {
     };
 
     setNotifications(prev => [...prev, notification]);
+    
+    // Play sound for non-confirm notifications
+    if (options.type !== 'confirm') {
+      playNotificationSound();
+    }
+    
     return id;
-  }, []);
+  }, [playNotificationSound]);
 
   const removeNotification = useCallback((id: string) => {
     setNotifications(prev => prev.filter(notification => notification.id !== id));

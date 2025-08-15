@@ -15,12 +15,29 @@ const getThumb = (stream: { name: string; url: string; customThumbnail?: string 
   }
   
   try {
-    const id = new URL(stream.url).searchParams.get('v');
-    return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
+    // Try parsing as URL first
+    const url = new URL(stream.url);
+    const id = url.searchParams.get('v');
+    if (id) {
+      return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+    }
   } catch {
-    const id = stream.url.split('v=')[1] || '';
-    return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
+    // Fallback: extract ID from various YouTube URL formats
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /v=([^&\n?#]+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = stream.url.match(pattern);
+      if (match && match[1]) {
+        return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
+      }
+    }
   }
+  
+  // Return placeholder if no ID found
+  return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjkwIiB2aWV3Qm94PSIwIDAgMTIwIDkwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjkwIiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik00OCA0MEw3MiA1NUw0OCA3MFY0MFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=';
 };
 
 function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
@@ -108,7 +125,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
         }
       `}</style>
       <div
-        className={`rounded-lg transition-all transition-size overflow-hidden ${wrapperBg} ${layout === 'compact' ? (isExpanded ? '' : 'h-10') : ''}`}
+        className={`rounded-lg transition-all overflow-hidden ${wrapperBg}`}
         style={{ 
           '--slider-accent': accentHex, 
           '--accent-hex': accentHex,
@@ -191,10 +208,13 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
 
       {/* Expanded Controls */}
       <div
-        className={`collapse-container ${isExpanded ? 'expanded' : 'collapsed'} border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
+        className={`transition-height ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'} border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
+        style={{
+          '--max-height': '24rem'
+        } as React.CSSProperties}
       >
-                 {isExpanded && (
-           <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} ${layout === 'compact' ? 'px-3' : 'px-6'} pt-3 pb-2 animate-slide-in-up`}>
+        {isExpanded && (
+          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} ${layout === 'compact' ? 'px-3' : 'px-6'} pt-3 pb-2 animate-slide-in-up`}>
             {/* Stream Selection as tiles */}
             <div className="mb-3">
               <div className="flex items-center justify-between mb-2">
@@ -226,8 +246,12 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
                         <img
                           src={thumb}
                           alt={stream.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover transition-opacity duration-200"
                           loading="lazy"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjkwIiB2aWV3Qm94PSIwIDAgMTIwIDkwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjkwIiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik00OCA0MEw3MiA1NUw0OCA3MFY0MFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=';
+                          }}
                         />
                         {active && (
                           <div className="absolute inset-0 music-accent-overlay" />
@@ -274,8 +298,12 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
                         <img
                           src={thumb}
                           alt={stream.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover transition-opacity duration-200"
                           loading="lazy"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjkwIiB2aWV3Qm94PSIwIDAgMTIwIDkwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjkwIiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik00OCA0MEw3MiA1NUw0OCA3MFY0MFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=';
+                          }}
                         />
                         {active && (
                           <div className="absolute inset-0 music-accent-overlay" />
@@ -341,6 +369,10 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
           cursor: pointer;
           border: 2px solid white;
           box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+          transition: transform 0.15s ease;
+        }
+        .slider::-webkit-slider-thumb:hover {
+          transform: scale(1.1);
         }
         .slider::-moz-range-thumb {
           width: 16px;
@@ -350,6 +382,10 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
           cursor: pointer;
           border: 2px solid white;
           box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+          transition: transform 0.15s ease;
+        }
+        .slider::-moz-range-thumb:hover {
+          transform: scale(1.1);
         }
       `}</style>
     </div>

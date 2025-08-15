@@ -60,6 +60,10 @@ export interface Session {
 export interface Settings {
   visualNotifications: boolean;
   audioNotifications: boolean;
+  /** Sound volume (0-1) */
+  soundVolume?: number;
+  /** Selected notification sound ID */
+  notificationSound?: string;
   theme: 'light' | 'dark';
   /** Accent color token; tailwind-safe mapping is applied in components */
   accentColor: string;
@@ -274,14 +278,19 @@ function AppContent() {
   })();
 
   return (
-  <div className={`min-h-screen transition-colors duration-300 ease-out-smooth ${
-    theme === 'dark'
-      ? `${darkBgClass} text-white`
-      : `${lightBgClass} text-gray-900`
-  }`}>
+    <NotificationProvider settings={{
+      audioNotifications: settings.audioNotifications,
+      soundVolume: settings.soundVolume,
+      notificationSound: settings.notificationSound
+    }}>
+      <div className={`min-h-screen transition-all duration-300 ease-out-smooth ${
+        theme === 'dark'
+          ? `${darkBgClass} text-white`
+          : `${lightBgClass} text-gray-900`
+      }`}>
     {/* Always-mounted hidden YouTube iframe for uninterrupted playback */}
     <GlobalMusicIframe />
-    <div className={`mx-auto ${isWidget ? 'max-w-2xl p-4' : 'max-w-2xl p-6'}`}>
+    <div className={`mx-auto ${isWidget ? 'max-w-2xl p-4' : 'max-w-4xl px-4 sm:px-6 py-6'}`}>
 
         {/* Header */}
         {!isWidget ? (
@@ -307,13 +316,13 @@ function AppContent() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 transition-colors duration-240 ease-out-smooth">
+            <div className="flex items-center space-x-2 transition-all duration-240 ease-out-smooth">
               <button
                 onClick={() => setIsWidget(true)}
-                className={`hidden sm:block p-2 rounded-lg transition-colors ${
+                className={`hidden sm:block p-2 rounded-lg transition-colors duration-240 ease-out-smooth ${
                   theme === 'dark'
-                    ? 'hover:bg-gray-800'
-                    : 'hover:bg-gray-200'
+                    ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300'
+                    : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
                 }`}
                 title="Widget mode"
               >
@@ -328,13 +337,13 @@ function AppContent() {
                   onClick={() => setShowMusicPlayer(!showMusicPlayer)}
                   className={`p-2 rounded-lg transition-colors duration-240 ease-out-smooth ${
                     theme === 'dark'
-                      ? 'hover:bg-gray-800'
-                      : 'hover:bg-gray-200'
+                      ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300'
+                      : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   <Music 
                     size={18} 
-                    className={musicPlaying && !showMusicPlayer ? 'animate-pulse' : ''}
+                    className={musicPlaying && !showMusicPlayer ? 'animate-pulse' : 'transition-colors duration-200'}
                     style={musicPlaying && !showMusicPlayer ? { color: getAccentHex(accentColor, colorSystem.getAllAccentColors()) } : undefined}
                   />
                 </button>
@@ -347,8 +356,8 @@ function AppContent() {
                   onClick={() => setLayout(layout === 'compact' ? 'full' : 'compact')}
                   className={`hidden sm:block p-2 rounded-lg transition-colors duration-240 ease-out-smooth ${
                     theme === 'dark'
-                      ? 'hover:bg-gray-800'
-                      : 'hover:bg-gray-200'
+                      ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300'
+                      : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
                   }`}
                   title={layout === 'compact' ? 'Switch to full mode' : 'Switch to compact mode'}
                   aria-label="Toggle layout mode"
@@ -362,8 +371,8 @@ function AppContent() {
                 onClick={toggleTheme}
                 className={`p-2 rounded-lg transition-colors duration-240 ease-out-smooth ${
                   theme === 'dark'
-                    ? 'hover:bg-gray-800'
-                    : 'hover:bg-gray-200'
+                    ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300'
+                    : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
                 }`}
                 title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               >
@@ -374,8 +383,8 @@ function AppContent() {
                 onClick={() => setShowSettings(!showSettings)}
                 className={`p-2 rounded-lg transition-colors duration-240 ease-out-smooth ${
                   theme === 'dark'
-                    ? 'hover:bg-gray-800'
-                    : 'hover:bg-gray-200'
+                    ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300'
+                    : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
                 }`}
                 title="Settings"
               >
@@ -406,7 +415,7 @@ function AppContent() {
                 {(settings.showMusicPlayer ?? true) && (
                   <button
                     onClick={() => setMusicPlaying(!musicPlaying)}
-                    className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`}
+                    className={`p-2 rounded-lg transition-colors duration-240 ease-out-smooth ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'}`}
                     title={musicPlaying ? 'Pause music' : 'Play music'}
                   >
                     {musicPlaying ? <Pause size={18} /> : <Play size={18} />}
@@ -414,7 +423,7 @@ function AppContent() {
                 )}
                 <button
                   onClick={() => setIsWidget(false)}
-                  className={`hidden sm:block p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`}
+                  className={`hidden sm:block p-2 rounded-lg transition-colors duration-240 ease-out-smooth ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'}`}
                   title="Exit widget mode"
                 >
                   <Maximize2 size={18} />
@@ -425,7 +434,10 @@ function AppContent() {
         )}
 
                  {/* Music Player (global placement for full mode only) */}
-         <div className={`transition-size ${(settings.showMusicPlayer ?? true) && showMusicPlayer && !isWidget && layout !== 'compact' ? 'mb-6' : ''}`}>
+         <div className={`transition-height ${(settings.showMusicPlayer ?? true) && showMusicPlayer && !isWidget && layout !== 'compact' ? 'max-h-96 opacity-100 mb-6' : 'max-h-0 opacity-0'}`}
+              style={{
+                '--max-height': '24rem'
+              } as React.CSSProperties}>
            {(settings.showMusicPlayer ?? true) && showMusicPlayer && !isWidget && layout !== 'compact' && (
              <div className="animate-slide-in-up">
                <MusicPlayer theme={theme} />
@@ -434,17 +446,15 @@ function AppContent() {
          </div>
 
          {/* Settings Panel */}
-         <div className={`transition-size ${showSettings ? 'mb-6' : ''}`}>
-           {showSettings && (
-             <div className={`animate-slide-in-up ${cardShadow}`}>
-               <SettingsPanel
-                 settings={settings}
-                 onUpdateSettings={updateSettings}
-                 theme={theme}
-               />
-             </div>
-           )}
-         </div>
+         {showSettings && (
+           <div className={`animate-slide-in-up ${cardShadow} mb-6`}>
+             <SettingsPanel
+               settings={settings}
+               onUpdateSettings={updateSettings}
+               theme={theme}
+             />
+           </div>
+         )}
 
         {/* Main Content - layout controlled by toggle: compact (side-by-side) or full (stacked) */}
         {!isWidget ? (
@@ -452,7 +462,7 @@ function AppContent() {
             {layout === 'compact' && settings.showTasks ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
                 {/* Left Column: Timer (+ optional player under it) */}
-                <div className="space-y-6 sm:sticky sm:top-6 sm:self-start">
+                <div className={`space-y-6 ${showSettings ? '' : 'sm:sticky sm:top-6 sm:self-start'}`}>
                   <div
                     className={`rounded-2xl p-6 ${cardShadow} transition-colors duration-300 ease-out-smooth ${timerSurfaceClass}`}
                     style={settings.colorTimer ? { backgroundColor: getAccentHex(accentColor, colorSystem.getAllAccentColors()), color: '#ffffff' } : undefined}
@@ -641,15 +651,14 @@ function AppContent() {
          )}
       </div>
     </div>
+    </NotificationProvider>
   );
 }
 
 function App() {
   return (
     <ColorSystemProvider>
-      <NotificationProvider>
-        <AppContent />
-      </NotificationProvider>
+      <AppContent />
     </ColorSystemProvider>
   );
 }

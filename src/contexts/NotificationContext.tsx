@@ -24,9 +24,14 @@ export const useNotificationContext = () => {
 
 interface NotificationProviderProps {
   children: ReactNode;
+  settings?: {
+    audioNotifications?: boolean;
+    soundVolume?: number;
+    notificationSound?: string;
+  };
 }
 
-export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
+export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children, settings }) => {
   const {
     notifications,
     removeNotification,
@@ -37,7 +42,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     showConfirm,
     confirm,
     alert,
-  } = useNotifications();
+  } = useNotifications(settings);
 
   const contextValue: NotificationContextType = {
     showSuccess,

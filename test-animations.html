@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animation Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes slide-in-up {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes bar-grow {
+            0% {
+                transform: scaleY(0);
+                opacity: 0;
+            }
+            100% {
+                transform: scaleY(1);
+                opacity: 1;
+            }
+        }
+        
+        .animate-slide-in-up {
+            animation: slide-in-up 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        
+        .animate-bar-grow {
+            animation: bar-grow 400ms cubic-bezier(0.0, 0.0, 0.2, 1) both;
+            transform-origin: bottom;
+        }
+        
+        .animate-card-1 {
+            animation: slide-in-up 240ms cubic-bezier(0.22, 1, 0.36, 1) 0ms both;
+        }
+        
+        .animate-card-2 {
+            animation: slide-in-up 240ms cubic-bezier(0.22, 1, 0.36, 1) 50ms both;
+        }
+        
+        .animate-card-3 {
+            animation: slide-in-up 240ms cubic-bezier(0.22, 1, 0.36, 1) 100ms both;
+        }
+        
+        .animate-card-4 {
+            animation: slide-in-up 240ms cubic-bezier(0.22, 1, 0.36, 1) 150ms both;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <h1 class="text-2xl font-bold mb-8">Animation Test</h1>
+    
+    <div class="mb-8">
+        <h2 class="text-lg font-semibold mb-4">Card Animations</h2>
+        <div class="grid grid-cols-4 gap-4">
+            <div class="p-4 bg-blue-500 text-white rounded-lg animate-card-1">Card 1</div>
+            <div class="p-4 bg-blue-500 text-white rounded-lg animate-card-2">Card 2</div>
+            <div class="p-4 bg-blue-500 text-white rounded-lg animate-card-3">Card 3</div>
+            <div class="p-4 bg-blue-500 text-white rounded-lg animate-card-4">Card 4</div>
+        </div>
+    </div>
+    
+    <div class="mb-8">
+        <h2 class="text-lg font-semibold mb-4">Bar Chart Animation</h2>
+        <div class="flex items-end space-x-2" style="height: 120px;">
+            <div class="w-12 bg-blue-500 animate-bar-grow" style="height: 60px; animation-delay: 0ms;"></div>
+            <div class="w-12 bg-blue-500 animate-bar-grow" style="height: 80px; animation-delay: 100ms;"></div>
+            <div class="w-12 bg-blue-500 animate-bar-grow" style="height: 40px; animation-delay: 200ms;"></div>
+            <div class="w-12 bg-blue-500 animate-bar-grow" style="height: 100px; animation-delay: 300ms;"></div>
+            <div class="w-12 bg-blue-500 animate-bar-grow" style="height: 70px; animation-delay: 400ms;"></div>
+        </div>
+    </div>
+    
+    <button onclick="location.reload()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+        Replay Animations
+    </button>
+</body>
+</html>

@@ -356,6 +356,73 @@ function History({
           </div>
         </div>
 
+        {/* Task Search - Collapsible under header */}
+        {showSearch && (
+          <div className={`px-6 py-4 border-b animate-slide-in-down ${
+            theme === 'dark' ? 'border-gray-700 bg-gray-750' : 'border-gray-200 bg-gray-50'
+          }`}>
+            <div className="relative">
+              <Search size={16} className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`} />
+              <input
+                type="text"
+                value={searchTask}
+                onChange={(e) => setSearchTask(e.target.value)}
+                placeholder="Search tasks..."
+                className={`w-full pl-10 pr-4 py-2 rounded-lg border ${
+                  theme === 'dark'
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
+                } focus:outline-none`}
+                autoFocus
+              />
+            </div>
+            {searchTask && (
+              <div className={`mt-3 p-3 rounded-lg ${
+                theme === 'dark' ? 'bg-gray-700' : 'bg-white'
+              }`}>
+                <div className="text-sm mb-3">
+                  <strong>"{searchTask}"</strong> - {taskSessions.length} sessions, {formatTime(taskTime)} total
+                </div>
+                {taskSessions.length > 0 && (
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {taskSessions.slice(0, 10).map(session => (
+                      <button
+                        key={session.id}
+                        onClick={() => {
+                          setSelectedDate(session.date);
+                          setView('day');
+                          setShowSearch(false);
+                          setSearchTask('');
+                        }}
+                        className={`w-full flex justify-between items-center p-2 rounded transition-colors ${
+                          theme === 'dark' 
+                            ? 'bg-gray-600 hover:bg-gray-500' 
+                            : 'bg-gray-100 hover:bg-gray-200'
+                        }`}
+                      >
+                        <div className="text-left">
+                          <div className="font-medium text-sm">{session.taskName}</div>
+                          <div className="text-xs opacity-75">{session.date}</div>
+                        </div>
+                        <div className="text-sm history-accent-text">
+                          {formatTime(session.duration)}
+                        </div>
+                      </button>
+                    ))}
+                    {taskSessions.length > 10 && (
+                      <div className="text-xs text-center opacity-75 pt-2">
+                        ... and {taskSessions.length - 10} more sessions
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)] history-scrollbar">
           {/* View Toggle */}
           <div className="flex items-center justify-between mb-6">
@@ -424,73 +491,6 @@ function History({
             </div>
           )}
 
-          {/* Task Search - Collapsible */}
-          {showSearch && (
-            <div className="mb-6 animate-fade-in-up">
-              <div className="relative">
-                <Search size={16} className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                }`} />
-                <input
-                  type="text"
-                  value={searchTask}
-                  onChange={(e) => setSearchTask(e.target.value)}
-                  placeholder="Search tasks..."
-                  className={`w-full pl-10 pr-4 py-2 rounded-lg border ${
-                    theme === 'dark'
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
-                  } focus:outline-none`}
-                  autoFocus
-                />
-              </div>
-              {searchTask && (
-                <div className={`mt-2 p-3 rounded-lg ${
-                  theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'
-                }`}>
-                  <div className="text-sm mb-3">
-                    <strong>"{searchTask}"</strong> - {taskSessions.length} sessions, {formatTime(taskTime)} total
-                  </div>
-                  {taskSessions.length > 0 && (
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {taskSessions.slice(0, 10).map(session => (
-                        <button
-                          key={session.id}
-                          onClick={() => {
-                            setSelectedDate(session.date);
-                            setView('day');
-                            setShowSearch(false);
-                            setSearchTask('');
-                          }}
-                          className={`w-full flex justify-between items-center p-2 rounded transition-colors ${
-                            theme === 'dark' 
-                              ? 'bg-gray-600 hover:bg-gray-500' 
-                              : 'bg-white hover:bg-gray-50'
-                          }`}
-                        >
-                          <div className="text-left">
-                            <div className="font-medium text-sm">{session.taskName}</div>
-                            <div className="text-xs opacity-75">{session.date}</div>
-                          </div>
-                          <div className="text-sm history-accent-text">
-                            {formatTime(session.duration)}
-                          </div>
-                        </button>
-                      ))}
-                      {taskSessions.length > 10 && (
-                        <div className="text-xs text-center opacity-75 pt-2">
-                          ... and {taskSessions.length - 10} more sessions
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-
-
           {view === 'day' && (
             <div>
               {/* Day Header */}
@@ -517,25 +517,25 @@ function History({
 
               {/* Day Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-1 history-stat-card">
+                <div className="p-4 rounded-lg text-white animate-card-1 history-stat-card">
                   <div className="text-2xl font-bold text-white">
                     {formatTime(dayStats.totalTime)}
                   </div>
                   <div className="text-sm text-white/80">Total Time</div>
                 </div>
-                <div className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-2 history-stat-card">
+                <div className="p-4 rounded-lg text-white animate-card-2 history-stat-card">
                   <div className="text-2xl font-bold text-white">
                     {dayStats.sessionCount}
                   </div>
                   <div className="text-sm text-white/80">Sessions</div>
                 </div>
-                <div className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-3 history-stat-card">
+                <div className="p-4 rounded-lg text-white animate-card-3 history-stat-card">
                   <div className="text-2xl font-bold text-white">
                     {formatTime(Math.round(dayStats.avgSession))}
                   </div>
                   <div className="text-sm text-white/80">Average</div>
                 </div>
-                <div className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-4 history-stat-card">
+                <div className="p-4 rounded-lg text-white animate-card-4 history-stat-card">
                   <div className="text-2xl font-bold text-white">
                     {formatTime(dayStats.longestSession)}
                   </div>
@@ -547,10 +547,13 @@ function History({
 
               {/* Sessions List */}
               <div className="space-y-2">
-                {dayStats.sessions.map((session) => (
-                  <div key={session.id} className={`flex items-center justify-between p-3 rounded-lg ${
+                {dayStats.sessions.map((session, index) => (
+                  <div key={session.id} className={`flex items-center justify-between p-3 rounded-lg animate-slide-in-up ${
                     theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'
-                  }`}>
+                  }`}
+                  style={{
+                    animationDelay: `${index * 50}ms`
+                  }}>
                     <div>
                       <div className="font-medium">{session.taskName}</div>
                     </div>
@@ -637,11 +640,11 @@ function History({
                           setSelectedDate(dateStr);
                           setView('day');
                         }}
-                        className="transition-all hover:scale-105 flex-1 max-w-[60px]"
+                        className="transition-all duration-300 hover:scale-105 flex-1 max-w-[60px] group"
                       >
                         <div 
-                          className={`rounded-t-lg transition-all mx-auto ${
-                            isSelected ? 'ring-2 ring-white' : ''
+                          className={`rounded-t-lg transition-all duration-500 mx-auto animate-bar-grow hover:brightness-110 ${
+                            isSelected ? 'ring-2 ring-white shadow-lg' : ''
                           } ${
                             isToday ? 'ring-2 ring-white ring-opacity-60' : ''
                           }`}
@@ -649,8 +652,10 @@ function History({
                             width: '50px', 
                             height: `${barHeight}px`,
                             backgroundColor: dayStats.totalTime > 0 ? accentHex : (theme === 'dark' ? '#374151' : '#E5E7EB'),
-                            opacity: dayStats.totalTime > 0 ? 0.9 : 0.3
-                          }}
+                            opacity: dayStats.totalTime > 0 ? 0.9 : 0.3,
+                            animationDelay: `${index * 100}ms`,
+                            transformOrigin: 'bottom'
+                          } as React.CSSProperties}
                         />
                       </button>
                     );
@@ -740,25 +745,25 @@ function History({
                           
                           return (
                             <>
-                              <div className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-1 history-stat-card">
+                              <div className="p-4 rounded-lg text-white history-stat-card">
                                 <div className="text-2xl font-bold text-white">
                                   {formatTime(monthTotal)}
                                 </div>
                                 <div className="text-sm text-white/80">Month Total</div>
                               </div>
-                              <div className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-2 history-stat-card">
+                              <div className="p-4 rounded-lg text-white history-stat-card">
                                 <div className="text-2xl font-bold text-white">
                                   {activeDays}
                                 </div>
                                 <div className="text-sm text-white/80">Active Days</div>
                               </div>
-                              <div className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-3 history-stat-card">
+                              <div className="p-4 rounded-lg text-white history-stat-card">
                                 <div className="text-2xl font-bold text-white">
                                   {formatTime(Math.round(avgDaily))}
                                 </div>
                                 <div className="text-sm text-white/80">Avg Daily</div>
                               </div>
-                              <div className="p-4 rounded-lg text-white animate-fade-in-up animate-stagger-4 history-stat-card">
+                              <div className="p-4 rounded-lg text-white history-stat-card">
                                 <div className="text-2xl font-bold text-white">
                                   {formatTime(bestDay)}
                                 </div>
@@ -785,7 +790,7 @@ function History({
                             <div key={`empty-${i}`} className="aspect-square"></div>
                           ))}
                           
-                          {monthDates.map(day => {
+                          {monthDates.map((day, index) => {
                             const dayString = day.toDateString();
                             const daySessions = sessions.filter(session => session.date === dayString);
                             const totalTime = daySessions.reduce((sum, session) => sum + session.duration, 0);
@@ -800,9 +805,9 @@ function History({
                                   setSelectedDate(dayString);
                                   setView('day');
                                 }}
-                                className={`aspect-square rounded font-medium transition-all hover:scale-105 relative flex flex-col items-center justify-center p-1 ${
+                                className={`aspect-square rounded font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg relative flex flex-col items-center justify-center p-1 animate-scale-in ${
                                   isSelected
-                                    ? 'ring-2 ring-white'
+                                    ? 'ring-2 ring-white shadow-lg scale-105'
                                     : ''
                                 } ${
                                   theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'
@@ -810,7 +815,8 @@ function History({
                                 style={{
                                   backgroundColor: totalTime > 0 
                                     ? `${accentHex}${Math.round(Math.max(0.2, intensity) * 255).toString(16).padStart(2, '0')}`
-                                    : undefined
+                                    : undefined,
+                                  animationDelay: `${index * 20}ms`
                                 }}
                                 title={`${dayString}: ${formatTime(totalTime)} (${daySessions.length} sessions)`}
                               >

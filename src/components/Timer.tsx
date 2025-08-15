@@ -179,8 +179,8 @@ function Timer({
         {/* Status */}
         <div
           className={[
-            (!isBreak && activeTask) ? 'text-base md:text-lg' : 'text-sm',
-            'font-medium mb-2',
+            'text-base md:text-lg',
+            'font-medium mb-2 min-h-[1.5rem]',
             'whitespace-nowrap overflow-hidden text-ellipsis max-w-full',
             colorTimerOn ? 'text-white' : (theme === 'dark' ? 'text-gray-200' : 'text-gray-800')
           ].join(' ')}

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Bell, BellOff, Palette, Layers, Brush, Music, Plus, Edit3, Trash2, Check, X, Eye, EyeOff, Image as ImageIcon, Timer, CheckSquare, Sun, Moon, Minus } from 'lucide-react';
+import { Bell, BellOff, Palette, Layers, Brush, Music, Plus, Edit3, Trash2, Check, X, Eye, EyeOff, Image as ImageIcon, Timer, CheckSquare, Sun, Moon, Minus, Volume2, Upload, Play } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
 import type { Settings } from '../App';
 import { useMusicPlayer } from '../hooks/useMusicPlayer';
 import { useColorSystemContext } from '../contexts/ColorSystemContext';
 import { useNotificationContext } from '../contexts/NotificationContext';
 import { getAccentHex, isLightColor } from '../utils/colorSystem';
+import { soundManager, NOTIFICATION_SOUNDS } from '../utils/soundManager';
 
 /**
  * SettingsPanel.tsx
@@ -20,7 +21,8 @@ import { getAccentHex, isLightColor } from '../utils/colorSystem';
  * - Timer settings (mode, flow/pomodoro options)
  * - Task settings (show tasks, require selection)
  * - Music settings (show player, streams)
- * - Appearance (notifications, visual effects, colors, backgrounds)
+ * - Notifications (visual, audio, sounds, test buttons)
+ * - Appearance (visual effects, colors, backgrounds)
  */
 interface SettingsPanelProps {
   /** Current user settings */
@@ -564,6 +566,87 @@ function BackgroundManager({ theme, settings, onUpdateSettings, type }: ColorMan
   );
 }
 
+// Compact Sound Settings Component
+interface SoundSettingsProps {
+  theme: 'light' | 'dark';
+  settings: Settings;
+  onUpdateSettings: (settings: Partial<Settings>) => void;
+}
+
+function SoundSettings({ theme, settings, onUpdateSettings }: SoundSettingsProps) {
+  const currentVolume = settings.soundVolume ?? 0.5;
+  const currentSoundId = settings.notificationSound ?? 'default';
+
+  const handleVolumeChange = (volume: number) => {
+    onUpdateSettings({ soundVolume: volume });
+  };
+
+  const handleSoundSelect = (soundId: string) => {
+    onUpdateSettings({ notificationSound: soundId });
+  };
+
+  const handleTestSound = async () => {
+    const sound = soundManager.findSoundById(currentSoundId);
+    if (sound) {
+      try {
+        await soundManager.testSound(sound.url, currentVolume);
+      } catch (error) {
+        console.warn('Failed to test sound:', error);
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Sound Selection Dropdown */}
+      <div className="flex items-center gap-3">
+        <select
+          value={currentSoundId}
+          onChange={(e) => handleSoundSelect(e.target.value)}
+          className={`flex-1 px-3 py-2 rounded-lg text-sm border transition-colors ${
+            theme === 'dark'
+              ? 'bg-gray-700 border-gray-600 text-gray-300 focus:border-gray-500'
+              : 'bg-white border-gray-300 text-gray-700 focus:border-gray-400'
+          } focus:outline-none focus:ring-2 focus:ring-opacity-50`}
+        >
+          {NOTIFICATION_SOUNDS.map((sound) => (
+            <option key={sound.id} value={sound.id}>
+              {sound.name}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={handleTestSound}
+          className={`p-2 rounded-lg transition-colors ${
+            theme === 'dark'
+              ? 'hover:bg-gray-600 text-gray-400 hover:text-gray-300'
+              : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+          }`}
+          title="Test sound"
+        >
+          <Play size={16} />
+        </button>
+      </div>
+
+      {/* Volume Control */}
+      <div className="flex items-center gap-3">
+        <span className={`text-xs font-medium whitespace-nowrap ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+          {Math.round(currentVolume * 100)}%
+        </span>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.1"
+          value={currentVolume}
+          onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+          className="flex-1 slider"
+        />
+      </div>
+    </div>
+  );
+}
+
 function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps) {
   const colorSystem = useColorSystemContext();
   const { confirm, showSuccess, showError, showInfo, showConfirm } = useNotificationContext();
@@ -574,7 +657,7 @@ function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps
   return (
     <div 
       className={`rounded-xl p-4 md:p-6 max-w-5xl mx-auto ${
-        theme === 'dark' ? 'bg-gray-800/95 backdrop-blur-sm' : 'bg-white/95 backdrop-blur-sm'
+        theme === 'dark' ? 'bg-gray-800' : 'bg-white'
       } ${settings.flatMode ? 'border border-gray-200 dark:border-gray-700' : 'shadow-lg'}`}
       style={{
         '--accent-color': accentHex,
@@ -974,6 +1057,79 @@ function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps
             </div>
           </div>
 
+          {/* Notifications Settings */}
+          <div className={`p-5 rounded-xl border-2 ${
+            theme === 'dark' ? 'border-gray-600 bg-gray-800/70' : 'border-gray-300 bg-gray-50/80'
+          } ${settings.flatMode ? '' : ''}`}>
+            <h4 className={`text-sm font-semibold mb-4 flex items-center ${
+              theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+            }`}>
+              <Bell size={16} className="mr-2" />
+              Notifications
+            </h4>
+            <div className="space-y-4">
+              {/* Notification Toggles */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Bell size={14} className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
+                    <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Visual
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => onUpdateSettings({ visualNotifications: !settings.visualNotifications })}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                      settings.visualNotifications
+                        ? 'settings-active-toggle'
+                        : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                        settings.visualNotifications ? 'translate-x-5' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Volume2 size={14} className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
+                    <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Audio
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => onUpdateSettings({ audioNotifications: !settings.audioNotifications })}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                      settings.audioNotifications
+                        ? 'settings-active-toggle'
+                        : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                        settings.audioNotifications ? 'translate-x-5' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* Sound Settings - only show if audio notifications are enabled */}
+              {settings.audioNotifications && (
+                <div className="pt-3 border-t border-gray-200 dark:border-gray-600">
+                  <SoundSettings 
+                    theme={theme}
+                    settings={settings}
+                    onUpdateSettings={onUpdateSettings}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Appearance Settings */}
           <div className={`p-5 rounded-xl border-2 ${
             theme === 'dark' ? 'border-gray-600 bg-gray-800/70' : 'border-gray-300 bg-gray-50/80'
@@ -985,135 +1141,56 @@ function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps
               Appearance
             </h4>
             <div className="space-y-4">
-              {/* Notifications & Effects - Compact Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Notifications
-                  </span>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <Bell size={12} className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
-                        <span className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Visual
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => onUpdateSettings({ visualNotifications: !settings.visualNotifications })}
-                        className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
-                          settings.visualNotifications
-                            ? 'settings-active-toggle'
-                            : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${
-                            settings.visualNotifications ? 'translate-x-3.5' : 'translate-x-0.5'
-                          }`}
-                        />
-                      </button>
+              {/* Visual Effects */}
+              <div className="space-y-3">
+                <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Visual Effects
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Layers size={14} className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
+                      <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Shadows
+                      </span>
                     </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <BellOff size={12} className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
-                        <span className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Audio
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => onUpdateSettings({ audioNotifications: !settings.audioNotifications })}
-                        className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
-                          settings.audioNotifications
-                            ? 'settings-active-toggle'
-                            : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                    <button
+                      onClick={() => onUpdateSettings({ flatMode: !settings.flatMode })}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                        !settings.flatMode
+                          ? 'settings-active-toggle'
+                          : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                          !settings.flatMode ? 'translate-x-5' : 'translate-x-1'
                         }`}
-                      >
-                        <span
-                          className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${
-                            settings.audioNotifications ? 'translate-x-3.5' : 'translate-x-0.5'
-                          }`}
-                        />
-                      </button>
-                    </div>
+                      />
+                    </button>
                   </div>
-                  
-                  {/* Notification Demo */}
-                  <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
-                    <div className="flex flex-wrap gap-1">
-                      <button
-                        onClick={() => showSuccess('Success', 'Operation completed')}
-                        className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                      >
-                        ✓
-                      </button>
-                      <button
-                        onClick={() => showError('Error', 'Something went wrong')}
-                        className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                      >
-                        ✗
-                      </button>
-                      <button
-                        onClick={() => showConfirm('Confirm action?', '', () => showInfo('Confirmed'), () => showInfo('Cancelled'))}
-                        className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                      >
-                        ?
-                      </button>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="space-y-2">
-                  <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Visual Effects
-                  </span>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <Layers size={12} className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
-                        <span className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Shadows
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => onUpdateSettings({ flatMode: !settings.flatMode })}
-                        className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
-                          !settings.flatMode
-                            ? 'settings-active-toggle'
-                            : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${
-                            !settings.flatMode ? 'translate-x-3.5' : 'translate-x-0.5'
-                          }`}
-                        />
-                      </button>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Brush size={14} className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
+                      <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Color timer
+                      </span>
                     </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <Brush size={12} className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
-                        <span className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Color timer
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => onUpdateSettings({ colorTimer: !settings.colorTimer })}
-                        className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
-                          settings.colorTimer
-                            ? 'settings-active-toggle'
-                            : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                    <button
+                      onClick={() => onUpdateSettings({ colorTimer: !settings.colorTimer })}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                        settings.colorTimer
+                          ? 'settings-active-toggle'
+                          : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                          settings.colorTimer ? 'translate-x-5' : 'translate-x-1'
                         }`}
-                      >
-                        <span
-                          className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${
-                            settings.colorTimer ? 'translate-x-3.5' : 'translate-x-0.5'
-                          }`}
-                        />
-                      </button>
-                    </div>
+                      />
+                    </button>
                   </div>
                 </div>
               </div>
