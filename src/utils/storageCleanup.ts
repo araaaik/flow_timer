@@ -4,79 +4,74 @@
  */
 
 import type { Task } from '../App';
+import { STORAGE_KEYS } from './constants';
 
 /**
- * Clean up orphaned active task references
- * If the active task ID doesn't exist in the tasks array, clear it
+ * Safe JSON parse with fallback
+ */
+const safeJsonParse = <T>(json: string | null, fallback: T): T => {
+  if (!json || json === 'null') return fallback;
+  try {
+    return JSON.parse(json);
+  } catch {
+    return fallback;
+  }
+};
+
+/**
+ * Clean up orphaned active task references (optimized)
  */
 export function cleanupActiveTask(): void {
   try {
-    const activeTaskRaw = localStorage.getItem('flow-active-task');
-    const tasksRaw = localStorage.getItem('flow-tasks');
+    const activeTaskRaw = localStorage.getItem(STORAGE_KEYS.ACTIVE_TASK);
+    const tasksRaw = localStorage.getItem(STORAGE_KEYS.TASKS);
     
-    if (!activeTaskRaw || activeTaskRaw === 'null') {
-      return; // No active task set
-    }
-    
-    const activeTask = JSON.parse(activeTaskRaw);
-    if (!activeTask || !activeTask.id) {
-      localStorage.removeItem('flow-active-task');
-      return;
-    }
-    
+    // Early returns for common cases
+    if (!activeTaskRaw || activeTaskRaw === 'null') return;
     if (!tasksRaw) {
-      // No tasks exist, clear active task
-      localStorage.removeItem('flow-active-task');
+      localStorage.removeItem(STORAGE_KEYS.ACTIVE_TASK);
       return;
     }
     
-    const tasks: Task[] = JSON.parse(tasksRaw);
-    const taskExists = tasks.some(task => task.id === activeTask.id);
+    const activeTask = safeJsonParse(activeTaskRaw, null);
+    const tasks: Task[] = safeJsonParse(tasksRaw, []);
     
-    if (!taskExists) {
-      // Active task doesn't exist in tasks array, clear it
-      localStorage.removeItem('flow-active-task');
-      console.log('Cleaned up orphaned active task:', activeTask.name);
+    if (!activeTask?.id || !tasks.some(task => task.id === activeTask.id)) {
+      localStorage.removeItem(STORAGE_KEYS.ACTIVE_TASK);
+      if (activeTask?.name) {
+        console.log('Cleaned up orphaned active task:', activeTask.name);
+      }
     }
   } catch (error) {
     console.error('Error during active task cleanup:', error);
-    // If there's any error, clear the active task to be safe
-    localStorage.removeItem('flow-active-task');
+    localStorage.removeItem(STORAGE_KEYS.ACTIVE_TASK);
   }
 }
 
 /**
- * Clean up timer state if it references a non-existent task
+ * Clean up timer state if it references a non-existent task (simplified)
  */
 export function cleanupTimerState(): void {
   try {
-    const timerStateRaw = localStorage.getItem('flow-timer-state');
-    const tasksRaw = localStorage.getItem('flow-tasks');
+    const timerStateRaw = localStorage.getItem(STORAGE_KEYS.TIMER_STATE);
+    if (!timerStateRaw) return;
     
-    if (!timerStateRaw) {
-      return; // No timer state
+    const timerState = safeJsonParse(timerStateRaw, null);
+    if (!timerState?.sessionId || !timerState?.isRunning) return;
+    
+    const tasksRaw = localStorage.getItem(STORAGE_KEYS.TASKS);
+    const activeTaskRaw = localStorage.getItem(STORAGE_KEYS.ACTIVE_TASK);
+    
+    if (!tasksRaw || !activeTaskRaw) {
+      console.warn('Timer running but no tasks/active task found');
+      return;
     }
     
-    const timerState = JSON.parse(timerStateRaw);
-    if (!timerState.sessionId) {
-      return; // No session running
-    }
+    const tasks: Task[] = safeJsonParse(tasksRaw, []);
+    const activeTask = safeJsonParse(activeTaskRaw, null);
     
-    // If timer is running but no tasks exist, we might have an issue
-    if (!tasksRaw && timerState.isRunning) {
-      const tasks: Task[] = JSON.parse(tasksRaw || '[]');
-      const activeTaskRaw = localStorage.getItem('flow-active-task');
-      
-      if (activeTaskRaw && activeTaskRaw !== 'null') {
-        const activeTask = JSON.parse(activeTaskRaw);
-        if (activeTask && activeTask.id) {
-          const taskExists = tasks.some(task => task.id === activeTask.id);
-          if (!taskExists) {
-            // Timer is running for a non-existent task, this could cause issues
-            console.log('Warning: Timer state may reference deleted task');
-          }
-        }
-      }
+    if (activeTask?.id && !tasks.some(task => task.id === activeTask.id)) {
+      console.warn('Timer state references deleted task:', activeTask.name);
     }
   } catch (error) {
     console.error('Error during timer state cleanup:', error);

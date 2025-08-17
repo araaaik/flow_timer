@@ -6,6 +6,7 @@ import { useColorSystemContext } from '../contexts/ColorSystemContext';
 interface MusicPlayerProps {
   theme: 'light' | 'dark';
   layout?: 'compact' | 'full';
+  cardShadow?: string;
 }
 
 // Helper function to get thumbnail for a given stream (custom or YouTube)
@@ -40,7 +41,7 @@ const getThumb = (stream: { name: string; url: string; customThumbnail?: string 
   return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjkwIiB2aWV3Qm94PSIwIDAgMTIwIDkwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjkwIiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik00OCA0MEw3MiA1NUw0OCA3MFY0MFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=';
 };
 
-function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
+function MusicPlayer({ theme, layout = 'full', cardShadow = 'shadow-lg' }: MusicPlayerProps) {
   const {
     isPlaying,
     currentStream,
@@ -80,15 +81,27 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
 
 
   const togglePlayPause = () => {
-    setPlaying(!isPlaying);
+    try {
+      setPlaying(!isPlaying);
+    } catch (error) {
+      console.warn('Failed to toggle play/pause:', error);
+    }
   };
 
   const toggleMute = () => {
-    setMuted(!isMuted);
+    try {
+      setMuted(!isMuted);
+    } catch (error) {
+      console.warn('Failed to toggle mute:', error);
+    }
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setVolume(parseInt(e.target.value));
+    try {
+      setVolume(parseInt(e.target.value));
+    } catch (error) {
+      console.warn('Failed to change volume:', error);
+    }
   };
 
   // Background depends on layout/theme
@@ -125,7 +138,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
         }
       `}</style>
       <div
-        className={`rounded-lg transition-all overflow-hidden ${wrapperBg}`}
+        className={`${layout === 'compact' ? `rounded-2xl ${cardShadow} p-2` : 'rounded-lg'} transition-colors duration-300 ease-out-smooth overflow-hidden ${wrapperBg}`}
         style={{ 
           '--slider-accent': accentHex, 
           '--accent-hex': accentHex,
@@ -144,7 +157,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
               />
               <button
                 onClick={togglePlayPause}
-                className={`p-2 rounded-lg transition-colors ${
+                className={`p-2 rounded-lg transition-colors duration-300 ease-out-smooth ${
                   theme === 'dark'
                     ? 'hover:bg-gray-700 text-gray-300'
                     : 'hover:bg-gray-200 text-gray-600'
@@ -172,7 +185,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
               />
               <button
                 onClick={togglePlayPause}
-                className={`p-2 rounded-lg transition-colors ${
+                className={`p-2 rounded-lg transition-colors duration-300 ease-out-smooth ${
                   theme === 'dark'
                     ? 'hover:bg-gray-700 text-gray-300'
                     : 'hover:bg-gray-200 text-gray-600'
@@ -194,7 +207,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
         <div className={`flex items-center ${layout === 'compact' ? 'space-x-2' : 'space-x-2'}`}>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className={`p-2 rounded-lg transition-colors ${
+            className={`p-2 rounded-lg transition-colors duration-300 ease-out-smooth ${
               theme === 'dark'
                 ? 'hover:bg-gray-700 text-gray-300'
                 : 'hover:bg-gray-200 text-gray-600'
@@ -208,13 +221,13 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
 
       {/* Expanded Controls */}
       <div
-        className={`transition-height ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'} border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
+        className={`transition-height ${isExpanded ? 'max-h-[32rem] opacity-100' : 'max-h-0 opacity-0'} border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
         style={{
-          '--max-height': '24rem'
+          '--max-height': '32rem'
         } as React.CSSProperties}
       >
         {isExpanded && (
-          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} ${layout === 'compact' ? 'px-3' : 'px-6'} pt-3 pb-2 animate-slide-in-up`}>
+          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} ${layout === 'compact' ? 'px-3' : 'px-6'} pt-3 pb-2 animate-slide-in-up overflow-y-auto max-h-[28rem]`}>
             {/* Stream Selection as tiles */}
             <div className="mb-3">
               <div className="flex items-center justify-between mb-2">
@@ -232,8 +245,14 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
                     return (
                       <button
                         key={originalIndex}
-                        onClick={() => setCurrentStream(originalIndex)}
-                        className={`relative overflow-hidden rounded-lg aspect-video transition border ${
+                        onClick={() => {
+                          try {
+                            setCurrentStream(originalIndex);
+                          } catch (error) {
+                            console.warn('Failed to set current stream:', error);
+                          }
+                        }}
+                        className={`relative overflow-hidden rounded-lg aspect-video transition-colors duration-300 ease-out-smooth border ${
                           active
                             ? 'border-2 music-accent-border'
                             : (theme === 'dark'
@@ -246,7 +265,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
                         <img
                           src={thumb}
                           alt={stream.name}
-                          className="w-full h-full object-cover transition-opacity duration-200"
+                          className="w-full h-full object-cover transition-opacity duration-300 ease-out-smooth"
                           loading="lazy"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
@@ -274,7 +293,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
               ) : (
                 <div
                   className="grid gap-2"
-                  style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(88px, 1fr))' }}
+                  style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))' }}
                 >
                   {visibleStreams.map((stream, index) => {
                     const originalIndex = streams.findIndex(s => s === stream);
@@ -284,8 +303,14 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
                     return (
                       <button
                         key={originalIndex}
-                        onClick={() => setCurrentStream(originalIndex)}
-                        className={`relative overflow-hidden rounded-lg aspect-video transition border ${
+                        onClick={() => {
+                          try {
+                            setCurrentStream(originalIndex);
+                          } catch (error) {
+                            console.warn('Failed to set current stream:', error);
+                          }
+                        }}
+                        className={`relative overflow-hidden rounded-lg aspect-video transition-colors duration-300 ease-out-smooth border ${
                           active
                             ? 'border-2 music-accent-border'
                             : (theme === 'dark'
@@ -298,7 +323,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
                         <img
                           src={thumb}
                           alt={stream.name}
-                          className="w-full h-full object-cover transition-opacity duration-200"
+                          className="w-full h-full object-cover transition-opacity duration-300 ease-out-smooth"
                           loading="lazy"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
@@ -332,7 +357,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={toggleMute}
-                    className={`transition-colors ${theme === 'dark' ? 'hover:text-gray-300 text-gray-400' : 'hover:text-gray-700 text-gray-500'}`}
+                    className={`transition-colors duration-300 ease-out-smooth ${theme === 'dark' ? 'hover:text-gray-300 text-gray-400' : 'hover:text-gray-700 text-gray-500'}`}
                   >
                     {isMuted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
                   </button>
@@ -360,6 +385,35 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
       </div>
 
       <style>{`
+        .transition-height {
+          transition: max-height 0.3s ease-out-smooth, opacity 0.3s ease-out-smooth;
+          overflow: hidden;
+        }
+        
+        /* Custom scrollbar styles */
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 4px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+          background: ${theme === 'dark' ? '#4b5563' : '#d1d5db'};
+          border-radius: 2px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+          background: ${theme === 'dark' ? '#6b7280' : '#9ca3af'};
+        }
+        
+        /* Firefox scrollbar */
+        .overflow-y-auto {
+          scrollbar-width: thin;
+          scrollbar-color: ${theme === 'dark' ? '#4b5563' : '#d1d5db'} transparent;
+        }
+        
         .slider::-webkit-slider-thumb {
           appearance: none;
           width: 16px;
@@ -369,7 +423,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
           cursor: pointer;
           border: 2px solid white;
           box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-          transition: transform 0.15s ease;
+          transition: transform 0.3s ease-out-smooth;
         }
         .slider::-webkit-slider-thumb:hover {
           transform: scale(1.1);
@@ -382,7 +436,7 @@ function MusicPlayer({ theme, layout = 'full' }: MusicPlayerProps) {
           cursor: pointer;
           border: 2px solid white;
           box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-          transition: transform 0.15s ease;
+          transition: transform 0.3s ease-out-smooth;
         }
         .slider::-moz-range-thumb:hover {
           transform: scale(1.1);

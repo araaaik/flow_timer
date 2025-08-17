@@ -5,6 +5,7 @@ import type { Task, Settings } from '../App';
 import { useColorSystemContext } from '../contexts/ColorSystemContext';
 import { useNotificationContext } from '../contexts/NotificationContext';
 import { getAccentHex } from '../utils/colorSystem';
+import { formatTimerDisplay } from '../utils/timeUtils';
 
 /**
  * Timer.tsx
@@ -79,20 +80,7 @@ function Timer({
   // Get hex value for current accent
   const accentHex = getAccentHex(accentColor, colorSystem.getAllAccentColors());
 
-  /**
-   * formatTime()
-   * Render seconds as "mm:ss" or "h:mm:ss" when hours > 0.
-   */
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
 
-    if (hours > 0) {
-      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
 
   /**
    * truncateTaskName()
@@ -136,8 +124,8 @@ function Timer({
   ));
   const canStop = Boolean(isRunning && !isBreak);
 
-  // Detect Color Timer state from saved settings (avoid prop drilling)
-  const colorTimerOn = (window.localStorage.getItem('flow-settings') || '').includes('"colorTimer":true');
+  // Use settings prop for Color Timer state (more reliable than localStorage parsing)
+  const colorTimerOn = settings.colorTimer ?? false;
 
   // Debug logging
   const timerMode = settings.timerMode ?? 'flow';
@@ -253,9 +241,9 @@ function Timer({
             'font-sans font-bold tracking-tight mb-6',
             colorTimerOn ? 'text-white' : (theme === 'dark' ? 'text-white' : 'text-gray-900')
           ].join(' ')}
-          style={colorTimerOn ? { color: '#ffffff' } : { color: theme === 'dark' ? '#ffffff' : '#111827' }}
+          style={colorTimerOn ? { color: '#ffffff' } : undefined}
         >
-          {formatTime(time)}
+          {formatTimerDisplay(time)}
         </div>
 
         {/* Controls */}
@@ -273,7 +261,7 @@ function Timer({
             }
             disabled={!canStart && !canStop && !(isBreak && onSkipBreak && (settings.flowBreakSkipEnabled ?? true))}
             className={`${isWidget ? 'w-14 h-14' : 'w-16 h-16'
-              } rounded-full flex items-center justify-center font-semibold transition-all transform animate-fade-in-up ${(() => {
+              } rounded-full flex items-center justify-center font-semibold transition-all duration-300 ease-out-smooth transform animate-fade-in-up ${(() => {
                 if (!(canStart || canStop || (isBreak && onSkipBreak))) {
                   return colorTimerOn
                     ? 'bg-white/30 text-white/80 cursor-not-allowed'
@@ -294,15 +282,15 @@ function Timer({
             }
           >
             {isBreak ? (
-              <SkipForward size={isWidget ? 20 : 24} />
+              <SkipForward size={isWidget ? 20 : 24} style={colorTimerOn ? { color: '#ffffff' } : undefined} />
             ) : isRunning ? (
               timerMode === 'timer' || timerMode === 'pomodoro' ? (
-                <Square size={isWidget ? 20 : 24} />
+                <Square size={isWidget ? 20 : 24} style={colorTimerOn ? { color: '#ffffff' } : undefined} />
               ) : (
-                <Pause size={isWidget ? 20 : 24} />
+                <Pause size={isWidget ? 20 : 24} style={colorTimerOn ? { color: '#ffffff' } : undefined} />
               )
             ) : (
-              <Play size={isWidget ? 20 : 24} />
+              <Play size={isWidget ? 20 : 24} style={colorTimerOn ? { color: '#ffffff' } : undefined} />
             )}
           </button>
 
@@ -311,14 +299,14 @@ function Timer({
             <button
               onClick={handleReset}
               className={`${isWidget ? 'w-10 h-10' : 'w-12 h-12'
-                } rounded-full flex items-center justify-center transition-all animate-fade-in-up ${colorTimerOn
+                } rounded-full flex items-center justify-center transition-all duration-300 ease-out-smooth animate-fade-in-up ${colorTimerOn
                   ? 'bg-white/20 hover:bg-white/30 text-white'
                   : (theme === 'dark'
                     ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-600')
                 }`}
             >
-              <RotateCcw size={isWidget ? 16 : 18} />
+              <RotateCcw size={isWidget ? 16 : 18} style={colorTimerOn ? { color: '#ffffff' } : undefined} />
             </button>
           )}
         </div>

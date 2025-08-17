@@ -27,19 +27,26 @@ const defaultStreams: MusicStream[] = [
   { name: 'Rain Sounds', url: 'https://www.youtube.com/watch?v=-OekvEFm1lo' }
 ];
 
-// Load streams from localStorage or use defaults
-let streams = (() => {
-  try {
-    const saved = localStorage.getItem('flow-music-streams');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : defaultStreams;
+// Lazy load streams to avoid blocking initial render
+let streams: MusicStream[] | null = null;
+
+const getStreams = (): MusicStream[] => {
+  if (streams === null) {
+    try {
+      const saved = localStorage.getItem('flow-music-streams');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        streams = Array.isArray(parsed) && parsed.length > 0 ? parsed : defaultStreams;
+      } else {
+        streams = defaultStreams;
+      }
+    } catch (error) {
+      console.error('Failed to load music streams:', error);
+      streams = defaultStreams;
     }
-  } catch (error) {
-    console.error('Failed to load music streams:', error);
   }
-  return defaultStreams;
-})();
+  return streams;
+};
 
 class MusicPlayerManager {
   private static instance: MusicPlayerManager;
@@ -102,7 +109,8 @@ class MusicPlayerManager {
 
   private saveStreams() {
     try {
-      localStorage.setItem('flow-music-streams', JSON.stringify(streams));
+      const currentStreams = getStreams();
+      localStorage.setItem('flow-music-streams', JSON.stringify(currentStreams));
     } catch (error) {
       console.error('Failed to save music streams:', error);
     }
@@ -117,7 +125,8 @@ class MusicPlayerManager {
   }
 
   public setCurrentStream(index: number) {
-    if (index >= 0 && index < streams.length && this.state.currentStream !== index) {
+    const currentStreams = getStreams();
+    if (index >= 0 && index < currentStreams.length && this.state.currentStream !== index) {
       this.state.currentStream = index;
       this.updateIframe();
       this.notifyListeners();
@@ -149,9 +158,11 @@ class MusicPlayerManager {
   private updateIframe() {
     if (!this.iframeRef) return;
 
-    const streamUrl = streams[this.state.currentStream].url;
-    const videoId = streamUrl.split('v=')[1]?.split('&')[0];
+    const currentStreams = getStreams();
+    const streamUrl = currentStreams[this.state.currentStream]?.url;
+    if (!streamUrl) return;
     
+    const videoId = streamUrl.split('v=')[1]?.split('&')[0];
     if (!videoId) return;
 
     const params = new URLSearchParams({
@@ -172,41 +183,45 @@ class MusicPlayerManager {
       this.iframeRef.src = newSrc;
     }
 
-    // Control via postMessage to avoid unnecessary src reloads
-    const playerCommand = (func: string, args: unknown[] = []) => {
-      if (!this.iframeRef) return;
-      this.iframeRef.contentWindow?.postMessage(
-        JSON.stringify({ event: 'command', func, args }),
-        '*'
-      );
-    };
+    // Send commands after a delay to ensure iframe is ready
+    setTimeout(() => {
+      if (!this.iframeRef || !this.iframeRef.contentWindow) return;
 
-    if (this.state.isMuted || this.state.volume === 0) {
-      playerCommand('mute');
-    } else {
-      playerCommand('unMute');
-    }
+      const playerCommand = (func: string, args: unknown[] = []) => {
+        this.iframeRef!.contentWindow!.postMessage(
+          JSON.stringify({ event: 'command', func, args }),
+          '*'
+        );
+      };
 
-    // YouTube volume range is 0..100
-    playerCommand('setVolume', [this.state.volume]);
+      if (this.state.isMuted || this.state.volume === 0) {
+        playerCommand('mute');
+      } else {
+        playerCommand('unMute');
+      }
 
-    if (this.state.isPlaying && !this.state.isMuted) {
-      playerCommand('playVideo');
-    } else {
-      playerCommand('pauseVideo');
-    }
+      playerCommand('setVolume', [this.state.volume]);
+
+      if (this.state.isPlaying && !this.state.isMuted) {
+        playerCommand('playVideo');
+      } else {
+        playerCommand('pauseVideo');
+      }
+    }, 1000);
   }
 
   public getStreams() {
-    return streams;
+    return getStreams();
   }
 
   public getVisibleStreams() {
-    return streams.filter((_, index) => !this.state.hiddenStreams.includes(index));
+    const currentStreams = getStreams();
+    return currentStreams.filter((_, index) => !this.state.hiddenStreams.includes(index));
   }
 
   public toggleStreamVisibility(index: number) {
-    if (index < 0 || index >= streams.length) return;
+    const currentStreams = getStreams();
+    if (index < 0 || index >= currentStreams.length) return;
     
     const hiddenStreams = [...this.state.hiddenStreams];
     const hiddenIndex = hiddenStreams.indexOf(index);
@@ -223,7 +238,8 @@ class MusicPlayerManager {
     
     // If current stream is being hidden, switch to first visible stream
     if (hiddenStreams.includes(this.state.currentStream)) {
-      const visibleStreams = streams
+      const currentStreams = getStreams();
+      const visibleStreams = currentStreams
         .map((_, i) => i)
         .filter(i => !hiddenStreams.includes(i));
       
@@ -241,14 +257,18 @@ class MusicPlayerManager {
   }
 
   public addStream(name: string, url: string, customThumbnail?: string) {
-    streams.push({ name, url, customThumbnail });
+    const currentStreams = getStreams();
+    currentStreams.push({ name, url, customThumbnail });
+    streams = currentStreams; // Update cached reference
     this.saveStreams();
     this.notifyListeners();
   }
 
   public updateStream(index: number, name: string, url: string, customThumbnail?: string) {
-    if (index >= 0 && index < streams.length) {
-      streams[index] = { name, url, customThumbnail };
+    const currentStreams = getStreams();
+    if (index >= 0 && index < currentStreams.length) {
+      currentStreams[index] = { name, url, customThumbnail };
+      streams = currentStreams; // Update cached reference
       this.saveStreams();
       this.updateIframe();
       this.notifyListeners();
@@ -256,25 +276,29 @@ class MusicPlayerManager {
   }
 
   public updateStreamThumbnail(index: number, customThumbnail?: string) {
-    if (index >= 0 && index < streams.length) {
-      streams[index].customThumbnail = customThumbnail;
+    const currentStreams = getStreams();
+    if (index >= 0 && index < currentStreams.length) {
+      currentStreams[index].customThumbnail = customThumbnail;
+      streams = currentStreams; // Update cached reference
       this.saveStreams();
       this.notifyListeners();
     }
   }
 
   public deleteStream(index: number) {
-    if (index >= 0 && index < streams.length && streams.length > 1) {
-      streams.splice(index, 1);
+    const currentStreams = getStreams();
+    if (index >= 0 && index < currentStreams.length && currentStreams.length > 1) {
+      currentStreams.splice(index, 1);
+      streams = currentStreams; // Update cached reference
       
       // Update hidden streams indices
       this.state.hiddenStreams = this.state.hiddenStreams
         .map(hiddenIndex => hiddenIndex > index ? hiddenIndex - 1 : hiddenIndex)
-        .filter(hiddenIndex => hiddenIndex < streams.length);
+        .filter(hiddenIndex => hiddenIndex < currentStreams.length);
       
       // Update current stream if needed
-      if (this.state.currentStream >= streams.length) {
-        this.state.currentStream = streams.length - 1;
+      if (this.state.currentStream >= currentStreams.length) {
+        this.state.currentStream = currentStreams.length - 1;
       } else if (this.state.currentStream > index) {
         this.state.currentStream = this.state.currentStream - 1;
       }

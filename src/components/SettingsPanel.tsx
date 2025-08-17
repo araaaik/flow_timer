@@ -65,6 +65,7 @@ function MusicStreamsSettings({ theme }: MusicStreamsSettingsProps) {
     toggleStreamVisibility,
     isStreamHidden
   } = useMusicPlayer();
+  const { confirm } = useNotificationContext();
   
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -1012,50 +1013,6 @@ function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps
               )}
             </div>
           </div>
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-6">
-          {/* Music Settings */}
-          <div className={`p-5 rounded-xl border-2 ${
-            theme === 'dark' ? 'border-gray-600 bg-gray-800/70' : 'border-gray-300 bg-gray-50/80'
-          } ${settings.flatMode ? '' : ''}`}>
-            <h4 className={`text-sm font-semibold mb-4 flex items-center ${
-              theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
-            }`}>
-              <Music size={16} className="mr-2" />
-              Music Settings
-            </h4>
-            <div className="space-y-3">
-              {/* Enable Music Player */}
-              <div className="flex items-center justify-between">
-                <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-                  Enable music player
-                </span>
-                <button
-                  onClick={() => onUpdateSettings({ showMusicPlayer: !settings.showMusicPlayer })}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    settings.showMusicPlayer
-                      ? 'settings-active-toggle'
-                      : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
-                      settings.showMusicPlayer ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Music Streams */}
-              {settings.showMusicPlayer && (
-                <div className="pl-4 border-l-2 border-gray-300 dark:border-gray-600">
-                  <MusicStreamsSettings theme={theme} />
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* Notifications Settings */}
           <div className={`p-5 rounded-xl border-2 ${
@@ -1125,6 +1082,50 @@ function SettingsPanel({ settings, onUpdateSettings, theme }: SettingsPanelProps
                     settings={settings}
                     onUpdateSettings={onUpdateSettings}
                   />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-6">
+          {/* Music Settings */}
+          <div className={`p-5 rounded-xl border-2 ${
+            theme === 'dark' ? 'border-gray-600 bg-gray-800/70' : 'border-gray-300 bg-gray-50/80'
+          } ${settings.flatMode ? '' : ''}`}>
+            <h4 className={`text-sm font-semibold mb-4 flex items-center ${
+              theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+            }`}>
+              <Music size={16} className="mr-2" />
+              Music Settings
+            </h4>
+            <div className="space-y-3">
+              {/* Enable Music Player */}
+              <div className="flex items-center justify-between">
+                <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
+                  Enable music player
+                </span>
+                <button
+                  onClick={() => onUpdateSettings({ showMusicPlayer: !settings.showMusicPlayer })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.showMusicPlayer
+                      ? 'settings-active-toggle'
+                      : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
+                      settings.showMusicPlayer ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Music Streams */}
+              {settings.showMusicPlayer && (
+                <div className="pl-4 border-l-2 border-gray-300 dark:border-gray-600">
+                  <MusicStreamsSettings theme={theme} />
                 </div>
               )}
             </div>

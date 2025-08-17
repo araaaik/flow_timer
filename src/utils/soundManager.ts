@@ -3,6 +3,8 @@
  * Handles notification sounds and volume control
  */
 
+import { DEFAULTS } from './constants';
+
 export interface NotificationSound {
   id: string;
   name: string;
@@ -40,27 +42,34 @@ export const NOTIFICATION_SOUNDS: NotificationSound[] = [
 
 class SoundManager {
   private currentAudio: HTMLAudioElement | null = null;
+  private audioCache = new Map<string, HTMLAudioElement>();
 
   /**
-   * Play notification sound with volume control
+   * Play notification sound with volume control (optimized with caching)
    */
-  async playNotificationSound(soundUrl: string, volume: number = 0.5): Promise<void> {
+  async playNotificationSound(soundUrl: string, volume: number = DEFAULTS.SOUND_VOLUME): Promise<void> {
     try {
       // Stop any currently playing sound
-      if (this.currentAudio) {
+      if (this.currentAudio && !this.currentAudio.paused) {
         this.currentAudio.pause();
         this.currentAudio.currentTime = 0;
       }
 
-      // Create new audio element
-      this.currentAudio = new Audio(soundUrl);
-      this.currentAudio.volume = Math.max(0, Math.min(1, volume));
+      // Get or create cached audio element
+      let audio = this.audioCache.get(soundUrl);
+      if (!audio) {
+        audio = new Audio(soundUrl);
+        this.audioCache.set(soundUrl, audio);
+      }
+
+      // Reset and configure audio
+      audio.currentTime = 0;
+      audio.volume = Math.max(0, Math.min(1, volume));
       
-      // Play the sound
-      await this.currentAudio.play();
+      this.currentAudio = audio;
+      await audio.play();
     } catch (error) {
       console.warn('Failed to play notification sound:', error);
-      // Fallback to generated beep if file not found
       this.playBeep(volume);
     }
   }
@@ -68,7 +77,7 @@ class SoundManager {
   /**
    * Fallback beep sound using Web Audio API
    */
-  private playBeep(volume: number = 0.5): void {
+  private playBeep(volume: number = DEFAULTS.SOUND_VOLUME): void {
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
@@ -77,12 +86,12 @@ class SoundManager {
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
       
-      oscillator.frequency.value = 800;
+      oscillator.frequency.value = DEFAULTS.BEEP_FREQUENCY;
       oscillator.type = 'sine';
-      gainNode.gain.value = volume * 0.3;
+      gainNode.gain.value = volume * DEFAULTS.BEEP_VOLUME;
       
       oscillator.start();
-      oscillator.stop(audioContext.currentTime + 0.3);
+      oscillator.stop(audioContext.currentTime + DEFAULTS.BEEP_DURATION);
     } catch (error) {
       console.warn('Failed to play fallback beep:', error);
     }
@@ -91,7 +100,7 @@ class SoundManager {
   /**
    * Test play a sound
    */
-  async testSound(soundUrl: string, volume: number = 0.5): Promise<void> {
+  async testSound(soundUrl: string, volume: number = DEFAULTS.SOUND_VOLUME): Promise<void> {
     return this.playNotificationSound(soundUrl, volume);
   }
 
@@ -110,6 +119,13 @@ class SoundManager {
       this.currentAudio.pause();
       this.currentAudio = null;
     }
+    
+    // Clear audio cache
+    this.audioCache.forEach(audio => {
+      audio.pause();
+      audio.src = '';
+    });
+    this.audioCache.clear();
   }
 }
 

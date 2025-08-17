@@ -23,6 +23,7 @@ function GlobalMusicIframe() {
       title="Global YouTube audio"
       style={{ display: 'none' }}
       allow="autoplay; encrypted-media"
+      sandbox="allow-scripts allow-same-origin allow-presentation"
     />
   );
 }

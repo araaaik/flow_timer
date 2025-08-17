@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, Settings, Music, Moon, Sun, Minimize2, Maximize2, Layout, PanelTop } from 'lucide-react';
-import Timer from './components/Timer';
-import TaskManager from './components/TaskManager';
+import { AppHeader } from './components/AppHeader';
+import { MainContent } from './components/MainContent';
 import History from './components/History';
 import MusicPlayer from './components/MusicPlayer';
 import GlobalMusicIframe from './components/GlobalMusicIframe';
@@ -11,9 +10,9 @@ import { useTimer } from './hooks/useTimer';
 import { useTasks } from './hooks/useTasks';
 import { useTheme } from './hooks/useTheme';
 import { useMusicPlayer } from './hooks/useMusicPlayer';
-import { getAccentHex, getAccentClasses } from './utils/colorSystem';
+import { getAccentHex } from './utils/colorSystem';
 import { runStorageCleanup } from './utils/storageCleanup';
-import { formatTime } from './utils/dataManager';
+import { formatTime } from './utils/timeUtils';
 
 import { ColorSystemProvider, useColorSystemContext } from './contexts/ColorSystemContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -117,7 +116,7 @@ function AppContent() {
   const [isWidget, setIsWidget] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(true);
   // Layout: 'compact' = side-by-side, 'full' = stacked like mobile
   // Backward compatibility: accept legacy values 'horizontal'/'vertical' and treat them as 'compact'/'full'
   const [layoutRaw, setLayoutRaw] = useLocalStorage<'compact' | 'full' | 'horizontal' | 'vertical'>('flow-layout', 'compact');
@@ -150,6 +149,12 @@ function AppContent() {
 
   const { theme, toggleTheme, accentColor } = useTheme(settings.theme, settings.accentColor);
   const colorSystem = useColorSystemContext();
+
+  // Sync showMusicPlayer with settings
+  useEffect(() => {
+    console.log('App: Syncing showMusicPlayer with settings:', settings.showMusicPlayer);
+    setShowMusicPlayer(settings.showMusicPlayer ?? true);
+  }, [settings.showMusicPlayer]);
 
   // Ensure UI re-renders immediately when theme toggles without page reload
   useEffect(() => {
@@ -241,14 +246,6 @@ function AppContent() {
   // Global switch for card shadows: disabled in flatMode (ON => no shadows)
   const cardShadow = settings.flatMode ? '' : 'shadow-lg';
 
-  // Get Tailwind classes for the current accent color
-  const accentClasses = getAccentClasses(accentColor, colorSystem.getAllAccentColors());
-  const timerSurfaceClass = settings.colorTimer
-    ? `${accentClasses.bg} text-white`
-    : `${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`;
-
-  // (removed unused accentInlineStyle)
-
   // Compute page/background classes based on per-theme background settings
   const lightBgClass = (() => {
     switch (settings.lightBg) {
@@ -277,6 +274,8 @@ function AppContent() {
     }
   })();
 
+  console.log('App render - showMusicPlayer:', showMusicPlayer, 'settings.showMusicPlayer:', settings.showMusicPlayer);
+  
   return (
     <NotificationProvider settings={{
       audioNotifications: settings.audioNotifications,
@@ -292,146 +291,24 @@ function AppContent() {
     <GlobalMusicIframe />
     <div className={`mx-auto ${isWidget ? 'max-w-2xl p-4' : 'max-w-4xl px-4 sm:px-6 py-6'}`}>
 
-        {/* Header */}
-        {!isWidget ? (
-          <div className="flex items-center justify-between mb-6">
-            {/* Left: status dot + title + today's time perfectly baseline-aligned */}
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-3 h-3 rounded-full ${isRunning ? 'animate-pulse' : ''}`}
-                style={
-                  isRunning
-                    ? { backgroundColor: getAccentHex(accentColor, colorSystem.getAllAccentColors()) }
-                    : { backgroundColor: theme === 'dark' ? '#4b5563' : '#d1d5db' } // gray when not running (dark: gray-600, light: gray-300)
-                }
-              />
-              {/* Center-align title and today's counter vertically with each other */}
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold">FLOW</h1>
-                {todaysTime > 0 && (
-                  <div className="hidden sm:block text-lg text-gray-500">
-                    {formatTime(todaysTime)} today
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2 transition-all duration-240 ease-out-smooth">
-              <button
-                onClick={() => setIsWidget(true)}
-                className={`hidden sm:block p-2 rounded-lg transition-colors duration-240 ease-out-smooth ${
-                  theme === 'dark'
-                    ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300'
-                    : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
-                }`}
-                title="Widget mode"
-              >
-                <Minimize2 size={18} />
-              </button>
-
-              {/* Status dot uses accent color when on break */}
-              <style>{`:root{--accent-green:${getAccentHex('teal-700', colorSystem.getAllAccentColors())}}`}</style>
-              
-              {(settings.showMusicPlayer ?? true) && (
-                <button
-                  onClick={() => setShowMusicPlayer(!showMusicPlayer)}
-                  className={`p-2 rounded-lg transition-colors duration-240 ease-out-smooth ${
-                    theme === 'dark'
-                      ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300'
-                      : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <Music 
-                    size={18} 
-                    className={musicPlaying && !showMusicPlayer ? 'animate-pulse' : 'transition-colors duration-200'}
-                    style={musicPlaying && !showMusicPlayer ? { color: getAccentHex(accentColor, colorSystem.getAllAccentColors()) } : undefined}
-                  />
-                </button>
-              )}
-
-              
-              {/* Layout toggle: Compact / Full - only show if tasks are enabled */}
-              {settings.showTasks && (
-                <button
-                  onClick={() => setLayout(layout === 'compact' ? 'full' : 'compact')}
-                  className={`hidden sm:block p-2 rounded-lg transition-colors duration-240 ease-out-smooth ${
-                    theme === 'dark'
-                      ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300'
-                      : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
-                  }`}
-                  title={layout === 'compact' ? 'Switch to full mode' : 'Switch to compact mode'}
-                  aria-label="Toggle layout mode"
-                >
-                  {layout === 'compact' ? <PanelTop size={18} /> : <Layout size={18} />}
-                </button>
-              )}
-
-              {/* Swapped order: Theme toggle before Settings */}
-              <button
-                onClick={toggleTheme}
-                className={`p-2 rounded-lg transition-colors duration-240 ease-out-smooth ${
-                  theme === 'dark'
-                    ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300'
-                    : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
-                }`}
-                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              >
-                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                className={`p-2 rounded-lg transition-colors duration-240 ease-out-smooth ${
-                  theme === 'dark'
-                    ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300'
-                    : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
-                }`}
-                title="Settings"
-              >
-                <Settings size={18} />
-              </button>
-            </div>
-          </div>
-        ) : (
-          // Widget header under which the timer is placed
-          <div className="mb-4">
-            <div className="mx-auto w-full max-w-xs flex items-center justify-between">
-              <div className="flex items-center gap-3">
-              <div
-                className={`w-3 h-3 rounded-full ${isRunning ? 'animate-pulse' : ''}`}
-                style={
-                  isRunning
-                    ? { backgroundColor: getAccentHex(accentColor, colorSystem.getAllAccentColors()) }
-                    : { backgroundColor: theme === 'dark' ? '#4b5563' : '#d1d5db' }
-                }
-              />
-              {todaysTime > 0 && (
-                <div className="text-sm text-gray-500">
-                  {formatTime(todaysTime)} today
-                </div>
-              )}
-              </div>
-              <div className="flex items-center gap-2">
-                {(settings.showMusicPlayer ?? true) && (
-                  <button
-                    onClick={() => setMusicPlaying(!musicPlaying)}
-                    className={`p-2 rounded-lg transition-colors duration-240 ease-out-smooth ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'}`}
-                    title={musicPlaying ? 'Pause music' : 'Play music'}
-                  >
-                    {musicPlaying ? <Pause size={18} /> : <Play size={18} />}
-                  </button>
-                )}
-                <button
-                  onClick={() => setIsWidget(false)}
-                  className={`hidden sm:block p-2 rounded-lg transition-colors duration-240 ease-out-smooth ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'}`}
-                  title="Exit widget mode"
-                >
-                  <Maximize2 size={18} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <AppHeader
+          isWidget={isWidget}
+          setIsWidget={setIsWidget}
+          todaysTime={todaysTime}
+          isRunning={isRunning}
+          theme={theme}
+          accentColor={accentColor}
+          showMusicPlayer={showMusicPlayer}
+          setShowMusicPlayer={setShowMusicPlayer}
+          musicPlaying={musicPlaying}
+          setMusicPlaying={setMusicPlaying}
+          showTasks={settings.showTasks ?? true}
+          layout={layout}
+          setLayout={setLayout}
+          toggleTheme={toggleTheme}
+          showSettings={showSettings}
+          setShowSettings={setShowSettings}
+        />
 
                  {/* Music Player (global placement for full mode only) */}
          <div className={`transition-height ${(settings.showMusicPlayer ?? true) && showMusicPlayer && !isWidget && layout !== 'compact' ? 'max-h-96 opacity-100 mb-6' : 'max-h-0 opacity-0'}`}
@@ -456,176 +333,34 @@ function AppContent() {
            </div>
          )}
 
-        {/* Main Content - layout controlled by toggle: compact (side-by-side) or full (stacked) */}
-        {!isWidget ? (
-          <>
-            {layout === 'compact' && settings.showTasks ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
-                {/* Left Column: Timer (+ optional player under it) */}
-                <div className={`space-y-6 ${showSettings ? '' : 'sm:sticky sm:top-6 sm:self-start'}`}>
-                  <div
-                    className={`rounded-2xl p-6 ${cardShadow} transition-colors duration-300 ease-out-smooth ${timerSurfaceClass}`}
-                    style={settings.colorTimer ? { backgroundColor: getAccentHex(accentColor, colorSystem.getAllAccentColors()), color: '#ffffff' } : undefined}
-                  >
-                    <Timer
-                      time={time}
-                      isRunning={isRunning}
-                      isBreak={isBreak}
-                      onStart={startTimer}
-                      onStop={stopTimer}
-                      onReset={resetTimer}
-                      onSkipBreak={skipBreak}
-                      activeTask={activeTask}
-                      estimatedBreakTime={estimatedBreakTime}
-                      currentSession={currentSession}
-                      totalSessions={totalSessions}
-                      theme={theme}
-                      accentColor={accentColor}
-                      isWidget={isWidget}
-                      settings={settings}
-                    />
-                  </div>
-                  {/* When in compact layout, render MusicPlayer below Timer and same width; white card with no gray background */}
-                  {(settings.showMusicPlayer ?? true) && showMusicPlayer && (
-                    <div
-                      className={`rounded-2xl p-2 ${cardShadow} transition-colors duration-300 ease-out-smooth ${
-                        theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-                      }`}
-                    >
-                      <MusicPlayer theme={theme} layout="compact" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Right Column: Tasks */}
-                <div
-                  className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 ${cardShadow} transition-colors duration-300 ease-out-smooth`}
-                >
-                  <TaskManager
-                    tasks={tasks}
-                    activeTask={activeTask}
-                    onAddTask={handleTaskAdd}
-                    onDeleteTask={deleteTask}
-                    onSelectTask={(t) => { if (!isRunning) setActiveTask(t); }}
-                    taskHistory={taskHistory}
-                    theme={theme}
-                    accentColor={accentColor}
-                    sessions={sessions}
-                    layout="compact"
-                    onShowHistory={() => setShowHistory(true)}
-                  />
-                </div>
-              </div>
-            ) : layout === 'compact' && !settings.showTasks ? (
-              /* Compact layout with tasks disabled - centered timer */
-              <div className="flex justify-center">
-                <div className="w-full max-w-md space-y-6">
-                  <div
-                    className={`rounded-2xl p-6 ${cardShadow} transition-colors duration-300 ease-out-smooth ${timerSurfaceClass}`}
-                    style={settings.colorTimer ? { backgroundColor: getAccentHex(accentColor, colorSystem.getAllAccentColors()), color: '#ffffff' } : undefined}
-                  >
-                    <Timer
-                      time={time}
-                      isRunning={isRunning}
-                      isBreak={isBreak}
-                      onStart={startTimer}
-                      onStop={stopTimer}
-                      onReset={resetTimer}
-                      onSkipBreak={skipBreak}
-                      activeTask={activeTask}
-                      estimatedBreakTime={estimatedBreakTime}
-                      currentSession={currentSession}
-                      totalSessions={totalSessions}
-                      theme={theme}
-                      accentColor={accentColor}
-                      isWidget={isWidget}
-                      settings={settings}
-                    />
-                  </div>
-                  {(settings.showMusicPlayer ?? true) && showMusicPlayer && (
-                    <div
-                      className={`rounded-2xl p-2 ${cardShadow} transition-colors duration-300 ease-out-smooth ${
-                        theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-                      }`}
-                    >
-                        <MusicPlayer theme={theme} layout="compact" />
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-6 transition-colors duration-240 ease-out-smooth">
-                {/* Timer Block */}
-                <div
-                  className={`rounded-2xl p-6 ${cardShadow} transition-colors duration-300 ease-out-smooth ${timerSurfaceClass}`}
-                  style={settings.colorTimer ? { backgroundColor: getAccentHex(accentColor, colorSystem.getAllAccentColors()), color: '#ffffff' } : undefined}
-                >
-                  <Timer
-                    time={time}
-                    isRunning={isRunning}
-                    isBreak={isBreak}
-                    onStart={startTimer}
-                    onStop={stopTimer}
-                    onReset={resetTimer}
-                    onSkipBreak={skipBreak}
-                    activeTask={activeTask}
-                    estimatedBreakTime={estimatedBreakTime}
-                    currentSession={currentSession}
-                    totalSessions={totalSessions}
-                    theme={theme}
-                    accentColor={accentColor}
-                    isWidget={isWidget}
-                    settings={settings}
-                  />
-                </div>
-                {/* Task Manager Block - only show if tasks are enabled */}
-                {settings.showTasks && (
-                  <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 ${cardShadow} transition-colors duration-300 ease-out-smooth`}>
-                    <TaskManager
-                      tasks={tasks}
-                      activeTask={activeTask}
-                      onAddTask={handleTaskAdd}
-                      onDeleteTask={deleteTask}
-                      onSelectTask={(t) => { if (!isRunning) setActiveTask(t); }}
-                      taskHistory={taskHistory}
-                      theme={theme}
-                    accentColor={accentColor}
-                    sessions={sessions}
-                    layout="full"
-                      onShowHistory={() => setShowHistory(true)}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        ) : (
-          /* Widget Mode - Narrow card centered horizontally under the header */
-          <div className="flex justify-center">
-            <div
-              className={`rounded-2xl p-6 ${cardShadow} transition-colors duration-300 ease-out-smooth ${timerSurfaceClass} w-full max-w-xs`}
-              style={settings.colorTimer ? { backgroundColor: getAccentHex(accentColor, colorSystem.getAllAccentColors()), color: '#ffffff' } : undefined}
-            >
-              <Timer
-                time={time}
-                isRunning={isRunning}
-                isBreak={isBreak}
-                onStart={startTimer}
-                onStop={stopTimer}
-                onReset={resetTimer}
-                onSkipBreak={skipBreak}
-                activeTask={activeTask}
-                estimatedBreakTime={estimatedBreakTime}
-                currentSession={currentSession}
-                totalSessions={totalSessions}
-                theme={theme}
-                accentColor={accentColor}
-                isWidget={isWidget}
-                settings={settings}
-              />
-            </div>
-          </div>
-        )}
+        <MainContent
+          isWidget={isWidget}
+          layout={layout}
+          settings={settings}
+          theme={theme}
+          accentColor={accentColor}
+          cardShadow={cardShadow}
+          showMusicPlayer={showMusicPlayer}
+          showSettings={showSettings}
+          time={time}
+          isRunning={isRunning}
+          isBreak={isBreak}
+          onStart={startTimer}
+          onStop={stopTimer}
+          onReset={resetTimer}
+          onSkipBreak={skipBreak}
+          activeTask={activeTask}
+          estimatedBreakTime={estimatedBreakTime}
+          currentSession={currentSession}
+          totalSessions={totalSessions}
+          tasks={tasks}
+          onAddTask={handleTaskAdd}
+          onDeleteTask={deleteTask}
+          onSelectTask={setActiveTask}
+          taskHistory={taskHistory}
+          sessions={sessions}
+          onShowHistory={() => setShowHistory(true)}
+        />
 
                  {/* History Modal */}
          {showHistory && (

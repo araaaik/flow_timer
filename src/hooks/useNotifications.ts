@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { NotificationProps } from '../components/Notification';
 import { soundManager } from '../utils/soundManager';
 
@@ -19,11 +19,18 @@ interface SoundSettings {
 export const useNotifications = (soundSettings?: SoundSettings) => {
   const [notifications, setNotifications] = useState<NotificationProps[]>([]);
 
+  // Memoize sound settings to avoid unnecessary re-renders
+  const memoizedSoundSettings = useMemo(() => soundSettings, [
+    soundSettings?.audioNotifications,
+    soundSettings?.soundVolume,
+    soundSettings?.notificationSound
+  ]);
+
   const playNotificationSound = useCallback(async () => {
-    if (!soundSettings?.audioNotifications) return;
+    if (!memoizedSoundSettings?.audioNotifications) return;
     
-    const soundId = soundSettings.notificationSound || 'default';
-    const volume = soundSettings.soundVolume ?? 0.5;
+    const soundId = memoizedSoundSettings.notificationSound || 'default';
+    const volume = memoizedSoundSettings.soundVolume ?? 0.5;
     
     const sound = soundManager.findSoundById(soundId);
     if (sound) {
@@ -33,7 +40,7 @@ export const useNotifications = (soundSettings?: SoundSettings) => {
         console.warn('Failed to play notification sound:', error);
       }
     }
-  }, [soundSettings]);
+  }, [memoizedSoundSettings]);
 
   const addNotification = useCallback((title: string, options: NotificationOptions = {}) => {
     const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);

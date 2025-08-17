@@ -103,9 +103,6 @@ function TaskManager({
   return (
     <>
       <style>{`
-        .task-accent-border {
-          border: 2px solid var(--accent-color) !important;
-        }
         .task-accent-bg {
           background-color: var(--accent-color) !important;
           color: white !important;
@@ -144,19 +141,124 @@ function TaskManager({
 
         <div className="space-y-3">
           {tasks.length === 0 ? (
-            <div className={`py-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-              <button
-                onClick={handleExpand}
-                className={`w-full flex items-center justify-center gap-2 py-4 rounded-lg border-2 border-dashed transition-all duration-240 ease-out-smooth ${
-                  theme === 'dark'
-                    ? 'border-gray-600 hover:border-gray-500 hover:bg-gray-700/20 text-gray-400 hover:text-gray-300'
-                    : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Plus size={18} />
-                <span className="text-sm">Add task</span>
-              </button>
-            </div>
+            isExpanded ? (
+              <div className="py-4" data-no-clear>
+                <div className="space-y-2">
+                  <div className={`rounded-lg border transition-colors duration-240 ease-out-smooth ${
+                    theme === 'dark'
+                      ? 'border-gray-600 bg-gray-700/30'
+                      : 'border-gray-200 bg-gray-50/50'
+                  }`}>
+                    <div className="px-3 py-2">
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={newTaskName}
+                        onChange={(e) => setNewTaskName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleAddTask();
+                          if (e.key === 'Escape') handleCollapse();
+                        }}
+                        placeholder="Task name..."
+                        maxLength={50}
+                        className={`w-full bg-transparent text-sm font-semibold transition-colors duration-240 ease-out-smooth ${
+                          theme === 'dark' ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'
+                        } focus:outline-none`}
+                      />
+                    </div>
+
+                    <div className="px-3 py-2 border-t border-gray-300 dark:border-gray-600 flex items-center justify-between">
+                      <button
+                        onClick={handleCollapse}
+                        className={`px-2 py-1 text-xs rounded-lg transition-colors duration-240 ease-out-smooth ${
+                          theme === 'dark'
+                            ? 'text-gray-400 hover:bg-gray-600 hover:text-gray-300'
+                            : 'text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+                        }`}
+                      >
+                        Cancel
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={newTaskTime}
+                          onChange={(e) => setNewTaskTime(e.target.value)}
+                          className={`px-3 py-1 text-xs rounded-lg min-w-[70px] transition-colors duration-240 ease-out-smooth ${
+                            theme === 'dark'
+                              ? 'bg-gray-600 border-gray-500 text-white'
+                              : 'bg-white border-gray-300 text-gray-700'
+                          } border focus:outline-none shadow-sm`}
+                        >
+                          <option value="">Goal</option>
+                          <option value="30">30m</option>
+                          <option value="60">1h</option>
+                          <option value="90">1.5h</option>
+                          <option value="120">2h</option>
+                          <option value="180">3h</option>
+                          <option value="240">4h</option>
+                          <option value="300">5h</option>
+                          <option value="360">6h</option>
+                        </select>
+
+                        <button
+                          onClick={handleAddTask}
+                          disabled={!newTaskName.trim()}
+                          className={`px-4 py-1.5 text-sm rounded-lg font-medium transition-all duration-240 ease-out-smooth shadow-sm hover:shadow-md flex items-center justify-center ${
+                            newTaskName.trim()
+                              ? 'task-accent-bg'
+                              : `${theme === 'dark' ? 'bg-gray-600 text-gray-400' : 'bg-gray-200 text-gray-500'} cursor-not-allowed`
+                          }`}
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Suggestions - показываем только после ввода минимум 2 символов */}
+                  {newTaskName.length >= 2 && filteredSuggestions.length > 0 && (
+                    <div className={`rounded-lg border shadow-sm ${
+                      theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
+                    }`}>
+                      {filteredSuggestions.map((suggestion, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            setNewTaskName(suggestion);
+                            inputRef.current?.focus();
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm transition-colors duration-240 ease-out-smooth ${
+                            index === 0 ? 'rounded-t-lg' : ''
+                          } ${
+                            index === filteredSuggestions.length - 1 ? 'rounded-b-lg' : ''
+                          } ${
+                            theme === 'dark'
+                              ? 'text-gray-300 hover:bg-gray-600'
+                              : 'text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className={`py-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                <button
+                  onClick={handleExpand}
+                  className={`w-full flex items-center justify-center gap-2 py-4 rounded-lg border-2 border-dashed transition-all duration-240 ease-out-smooth ${
+                    theme === 'dark'
+                      ? 'border-gray-600 hover:border-gray-500 hover:bg-gray-700/20 text-gray-400 hover:text-gray-300'
+                      : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Plus size={18} />
+                  <span className="text-sm">Add task</span>
+                </button>
+              </div>
+            )
           ) : (
             <>
               {tasks.filter((task) => {
@@ -217,15 +319,15 @@ function TaskManager({
                       onSelectTask(task);
                     }
                   }}
-                  className={`rounded-lg animate-slide-in-up cursor-pointer transition-colors duration-240 ease-out-smooth ${
-                    layout === 'compact' ? 'min-h-[3rem]' : 'min-h-10'
-                  } ${
-                    activeTask?.id === task.id
-                      ? 'task-accent-border'
-                      : theme === 'dark'
-                        ? 'border border-gray-600 bg-gray-700/50 hover:bg-gray-700'
-                        : 'border border-gray-200 bg-gray-50 hover:bg-gray-100'
-                  }`}
+                                     className={`rounded-lg animate-slide-in-up cursor-pointer transition-all duration-240 ease-out-smooth border-2 ${
+                     layout === 'compact' ? 'min-h-[3rem]' : 'min-h-10'
+                   } ${
+                     activeTask?.id === task.id
+                       ? 'border-[var(--accent-color)] bg-[var(--accent-color)]/10 hover:bg-[var(--accent-color)]/15'
+                       : theme === 'dark'
+                         ? 'border-transparent bg-gray-700/50 hover:bg-gray-700'
+                         : 'border-transparent bg-gray-50 hover:bg-gray-100'
+                   }`}
                 >
                   <div className={`px-3 transition-colors duration-240 ease-out-smooth ${
                     layout === 'compact' ? 'py-3' : 'py-2 min-h-10'
@@ -323,9 +425,9 @@ function TaskManager({
           </div>
         )}
 
-        {/* Universal Add Task Form */}
-        {isExpanded && (
-          <div className={`${tasks.length > 0 ? 'mt-3' : 'mt-4'}`} data-no-clear>
+        {/* Universal Add Task Form - только когда есть задачи */}
+        {isExpanded && tasks.length > 0 && (
+          <div className="mt-3" data-no-clear>
             <div className="space-y-2">
               <div className={`rounded-lg border transition-colors duration-240 ease-out-smooth ${
                 theme === 'dark'

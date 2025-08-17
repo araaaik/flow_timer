@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Timer Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .timer-simulation {
+            background-color: #ef4444; /* Red accent color */
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .timer-display {
+            font-size: 4rem;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .timer-button {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            cursor: pointer;
+        }
+        .timer-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .reset-button {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px;
+            cursor: pointer;
+        }
+        .reset-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .icon {
+            width: 24px;
+            height: 24px;
+            color: #ffffff; /* White icons */
+        }
+        .status {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin: 10px 0;
+        }
+        .expected {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .expected h3 {
+            margin: 0 0 10px 0;
+            color: #2e7d32;
+        }
+        .expected ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .expected li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Color Timer Mode Test</h1>
+        
+        <div class="expected">
+            <h3>Expected Behavior in Color Timer Mode:</h3>
+            <ul>
+                <li>✅ Background: Accent color (red in this test)</li>
+                <li>✅ Timer text: White</li>
+                <li>✅ Status text: White</li>
+                <li>✅ Main button: Semi-transparent white background with white icon</li>
+                <li>✅ Reset button: Semi-transparent white background with white icon</li>
+                <li>✅ All text elements: White or white with transparency</li>
+            </ul>
+        </div>
+
+        <div class="timer-simulation">
+            <div class="status">FOCUS</div>
+            <div class="timer-display">25:30</div>
+            
+            <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
+                <button class="timer-button">
+                    <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                </button>
+                
+                <button class="reset-button">
+                    <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div style="margin-top: 20px; font-size: 0.9rem; opacity: 0.9;">
+                Estimated break: 5 min
+            </div>
+        </div>
+
+        <p>This simulation shows how the timer should look in Color Timer mode with a red accent color. All text should be white, and buttons should have semi-transparent white backgrounds with white icons.</p>
+    </div>
+</body>
+</html>

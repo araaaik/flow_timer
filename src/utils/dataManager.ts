@@ -1,4 +1,6 @@
 import type { Task, Session } from '../App';
+import { formatTime, formatDateTime } from './timeUtils';
+import { STORAGE_KEYS, FILE_TYPES, TIME_CONSTANTS } from './constants';
 
 /**
  * Data Manager Utilities
@@ -27,33 +29,7 @@ export interface DateRange {
   end: Date;
 }
 
-/**
- * Formats time in readable format (H:MM format)
- */
-export const formatTime = (seconds: number): string => {
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  
-  if (hours > 0) {
-    return `${hours}:${mins.toString().padStart(2, '0')}`;
-  } else {
-    return `0:${mins.toString().padStart(2, '0')}`;
-  }
-};
 
-/**
- * Formats date and time for Excel
- */
-export const formatDateTime = (dateString: string): string => {
-  return new Date(dateString).toLocaleString('en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
-};
 
 /**
  * Filters sessions by date range
@@ -116,7 +92,7 @@ export const exportToCSV = (sessions: Session[], _tasks: Task[], dateRange: Date
     ].join(','))
   ].join('\n');
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([csvContent], { type: FILE_TYPES.CSV.mimeType });
   
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -194,7 +170,7 @@ export const importFromCSV = (file: File): Promise<Session[]> => {
               duration: Number(duration),
               date: startDateTime.toDateString(),
               startTime: startDateTime.toISOString(),
-              endTime: new Date(startDateTime.getTime() + Number(duration) * 1000).toISOString()
+              endTime: new Date(startDateTime.getTime() + Number(duration) * TIME_CONSTANTS.MILLISECONDS_IN_SECOND).toISOString()
            };
            
            sessions.push(session);
@@ -237,35 +213,43 @@ export const deleteSessionsByDateRange = (
  */
 export const deleteAllHistory = (): void => {
   if (window.confirm('Are you sure you want to delete all history? This action cannot be undone.')) {
-    localStorage.removeItem('flow-sessions');
-    localStorage.removeItem('flow-task-history');
+    localStorage.removeItem(STORAGE_KEYS.SESSIONS);
+    localStorage.removeItem(STORAGE_KEYS.TASK_HISTORY);
     window.location.reload();
   }
 };
 
 /**
- * Get preset date ranges
+ * Get preset date ranges (optimized to avoid date mutations)
  */
 export const getPresetDateRanges = () => {
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   
-  const weekAgo = new Date(today);
-  weekAgo.setDate(today.getDate() - 7);
-  
-  const monthAgo = new Date(today);
-  monthAgo.setMonth(today.getMonth() - 1);
-  
-  const yearAgo = new Date(today);
-  yearAgo.setFullYear(today.getFullYear() - 1);
-
   return {
-    today: { start: new Date(today.setHours(0, 0, 0, 0)), end: new Date(today.setHours(23, 59, 59, 999)) },
-    yesterday: { start: new Date(yesterday.setHours(0, 0, 0, 0)), end: new Date(yesterday.setHours(23, 59, 59, 999)) },
-    lastWeek: { start: weekAgo, end: today },
-    lastMonth: { start: monthAgo, end: today },
-    lastYear: { start: yearAgo, end: today },
-    all: { start: new Date(2020, 0, 1), end: today }
+    today: { 
+      start: new Date(today), 
+      end: new Date(today.getTime() + TIME_CONSTANTS.MILLISECONDS_IN_DAY - 1) 
+    },
+    yesterday: { 
+      start: new Date(today.getTime() - TIME_CONSTANTS.MILLISECONDS_IN_DAY), 
+      end: new Date(today.getTime() - 1) 
+    },
+    lastWeek: { 
+      start: new Date(today.getTime() - 7 * TIME_CONSTANTS.MILLISECONDS_IN_DAY), 
+      end: now 
+    },
+    lastMonth: { 
+      start: new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()), 
+      end: now 
+    },
+    lastYear: { 
+      start: new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()), 
+      end: now 
+    },
+    all: { 
+      start: new Date(2020, 0, 1), 
+      end: now 
+    }
   };
 };
